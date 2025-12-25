@@ -1,0 +1,11 @@
+RewriteEngine On
+RewriteBase /
+
+# Project Slugs
+RewriteRule ^project/([a-zA-Z0-9-]+)$ projects/project_view.php?slug=$1 [L,QSA]
+
+# Client Slugs
+RewriteRule ^client/([a-zA-Z0-9-]+)$ clients/client_view.php?slug=$1 [L,QSA]
+
+# Prevent directory listing
+Options -Indexes
