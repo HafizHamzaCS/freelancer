@@ -54,7 +54,10 @@ if (isset($_GET['ajax_search'])) {
               </div>';
     } else {
         foreach ($teams as $team) {
-            echo '<div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all">
+            echo '<div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all relative">
+                    <div class="absolute top-4 left-4 z-10">
+                        <input type="checkbox" value="' . $team['id'] . '" class="checkbox checkbox-sm bulk-checkbox" />
+                    </div>
                     <div class="card-body">
                         <h2 class="card-title justify-between">
                             ' . htmlspecialchars($team['name']) . '
@@ -91,7 +94,15 @@ require_once '../header.php';
 ?>
 
 <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-    <h1 class="text-3xl font-bold text-base-content">Teams</h1>
+    <div class="flex items-center gap-4">
+        <h1 class="text-3xl font-bold text-base-content">Teams</h1>
+        <div class="form-control">
+            <label class="label cursor-pointer gap-2">
+                <input type="checkbox" id="selectAll" class="checkbox checkbox-sm" />
+                <span class="label-text">Select All</span>
+            </label>
+        </div>
+    </div>
     <div class="flex gap-2 w-full md:w-auto">
         <form method="GET" class="flex gap-2 w-full md:w-auto">
             <input type="text" name="search" placeholder="Search teams..." class="input input-bordered w-full md:w-64" value="<?php echo htmlspecialchars($search); ?>" />
@@ -103,7 +114,10 @@ require_once '../header.php';
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="team-grid">
     <?php foreach ($teams as $team): ?>
-    <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all">
+    <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all relative">
+        <div class="absolute top-4 left-4 z-10">
+            <input type="checkbox" value="<?php echo $team['id']; ?>" class="checkbox checkbox-sm bulk-checkbox" />
+        </div>
         <div class="card-body">
             <h2 class="card-title justify-between">
                 <?php echo htmlspecialchars($team['name']); ?>
@@ -202,5 +216,29 @@ if(searchInput) {
     });
 }
 </script>
+
+<!-- Bulk Action Bar -->
+<div id="bulkActionBar" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-base-100 shadow-2xl rounded-2xl p-4 border border-primary/20 hidden items-center gap-6 z-50 animate-bounce-in">
+    <div class="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-lg text-primary font-bold">
+        <span id="selectedCount">0</span> selected
+    </div>
+    
+    <form action="team_bulk.php" method="POST" class="flex items-center gap-2">
+        <input type="hidden" name="ids" id="bulkIds" />
+        
+        <select name="action" class="select select-bordered select-sm min-w-[150px]" required>
+            <option value="">Bulk Action...</option>
+            <option value="delete">Delete Selected Teams</option>
+        </select>
+        
+        <button type="submit" class="btn btn-primary btn-sm px-6" onclick="return confirmBulkDelete()">
+            Apply
+        </button>
+    </form>
+    
+    <button onclick="document.getElementById('selectAll').click()" class="btn btn-ghost btn-circle btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+    </button>
+</div>
 
 <?php require_once '../footer.php'; ?>

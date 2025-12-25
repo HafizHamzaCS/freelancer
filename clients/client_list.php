@@ -43,6 +43,9 @@ if (isset($_GET['ajax_search'])) {
 
             echo '<tr class="hover">';
             echo '<td>
+                    <input type="checkbox" value="' . $client['id'] . '" class="checkbox checkbox-sm bulk-checkbox" />
+                  </td>';
+            echo '<td>
                     <div class="flex items-center space-x-3">
                         <div class="avatar placeholder">
                             <div class="bg-neutral-focus text-neutral-content rounded-full w-12">
@@ -108,6 +111,7 @@ require_once '../header.php';
             <table class="table w-full">
                 <thead>
                     <tr>
+                        <th><input type="checkbox" id="selectAll" class="checkbox checkbox-sm" /></th>
                         <th>Name</th>
                         <th>Contact</th>
                         <th>Pro Score</th>
@@ -121,6 +125,7 @@ require_once '../header.php';
                     <?php else: ?>
                         <?php foreach ($clients as $client): ?>
                         <tr class="hover">
+                            <td><input type="checkbox" value="<?php echo $client['id']; ?>" class="checkbox checkbox-sm bulk-checkbox" /></td>
                             <td>
                                 <div class="flex items-center space-x-3">
                                     <div class="avatar placeholder">
@@ -254,5 +259,31 @@ searchInput.addEventListener('input', function() {
         });
 });
 </script>
+
+<!-- Bulk Action Bar -->
+<div id="bulkActionBar" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-base-100 shadow-2xl rounded-2xl p-4 border border-primary/20 hidden items-center gap-6 z-50 animate-bounce-in">
+    <div class="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-lg text-primary font-bold">
+        <span id="selectedCount">0</span> selected
+    </div>
+    
+    <form action="client_bulk.php" method="POST" class="flex items-center gap-2">
+        <input type="hidden" name="ids" id="bulkIds" />
+        
+        <select name="action" class="select select-bordered select-sm min-w-[150px]" required>
+            <option value="">Bulk Action...</option>
+            <option value="Active">Set Active</option>
+            <option value="Inactive">Set Inactive</option>
+            <option value="delete">Delete Selected</option>
+        </select>
+        
+        <button type="submit" class="btn btn-primary btn-sm px-6" onclick="return document.querySelector('select[name=action]').value === 'delete' ? confirmBulkDelete() : true">
+            Apply
+        </button>
+    </form>
+    
+    <button onclick="document.getElementById('selectAll').click()" class="btn btn-ghost btn-circle btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+    </button>
+</div>
 
 <?php require_once '../footer.php'; ?>

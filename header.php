@@ -192,6 +192,7 @@ if ($current_page != 'login.php' && $current_page != 'logout.php') {
             color: #ffffff !important;
         }
     </style>
+    <script src="<?php echo APP_URL; ?>/assets/bulk-actions.js"></script>
 </head>
 <body class="bg-base-200 min-h-screen font-sans">
 

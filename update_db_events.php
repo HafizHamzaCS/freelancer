@@ -36,3 +36,5 @@ if (mysqli_num_rows($check) == 0) {
     echo "\nDefault events added.";
 }
 ?>
+
+then i want you to add the 
