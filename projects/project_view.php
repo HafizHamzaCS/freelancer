@@ -137,24 +137,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['save_task'])) {
         $task_id = (int)$_POST['task_id']; // 0 for new
         $title = escape($_POST['title']);
-        $assigned_to = (int)$_POST['assigned_to'];
+        $assigned_to = !empty($_POST['assigned_to']) ? (int)$_POST['assigned_to'] : 'NULL';
         $priority = escape($_POST['priority']);
         $status = escape($_POST['status']);
-        $due_date = escape($_POST['due_date']);
+        $due_date = !empty($_POST['due_date']) ? "'" . escape($_POST['due_date']) . "'" : 'NULL';
         $description = escape($_POST['description']);
         $dependency_id = !empty($_POST['dependency_id']) ? (int)$_POST['dependency_id'] : 'NULL';
         
         if ($task_id > 0) {
             // Update
-            $sql = "UPDATE tasks SET title='$title', assigned_to=$assigned_to, priority='$priority', status='$status', due_date='$due_date', description='$description', dependency_id=$dependency_id WHERE id=$task_id AND project_id=$id";
+            $sql = "UPDATE tasks SET title='$title', assigned_to=$assigned_to, priority='$priority', status='$status', due_date=$due_date, description='$description', dependency_id=$dependency_id WHERE id=$task_id AND project_id=$id";
+            db_query($sql);
             log_system_activity('Task Update', "Updated task #$task_id");
             set_flash('success', 'Task updated successfully!');
         } else {
             // Create
-            $sql = "INSERT INTO tasks (project_id, title, assigned_to, priority, status, due_date, description, dependency_id) VALUES ($id, '$title', $assigned_to, '$priority', '$status', '$due_date', '$description', $dependency_id)";
+            $sql = "INSERT INTO tasks (project_id, title, assigned_to, priority, status, due_date, description, dependency_id) VALUES ($id, '$title', $assigned_to, '$priority', '$status', $due_date, '$description', $dependency_id)";
+            db_query($sql);
             log_system_activity('Task Create', "Created new task in project #$id");
             set_flash('success', 'Task created successfully!');
-        }$tab_redirect = 'overview';
+        }
+        $tab_redirect = 'overview';
     }
     
     // Simple status update (keep for legacy/kanban if needed, or remove)
