@@ -1,7 +1,4 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 require_once 'header.php';
 // Temporary Migration Trigger
 if (isset($_GET['migrate'])) {
@@ -155,8 +152,8 @@ $overdue_details = db_fetch_all($overdue_details_sql);
                         <div class="space-y-2 mt-2">
                         <?php foreach (array_slice($upcoming_events, 0, 3) as $event): ?>
                             <div class="flex justify-between items-center text-xs">
-                                <span class="truncate font-bold max-w-[120px]" title="<?php echo htmlspecialchars($event['title']); ?>">
-                                    <?php echo htmlspecialchars($event['title']); ?>
+                                <span class="truncate font-bold max-w-[120px]" title="<?php echo e($event['title']); ?>">
+                                    <?php echo e($event['title']); ?>
                                 </span>
                                 <span class="opacity-70"><?php echo date('M d', strtotime($event['due_date'])); ?></span>
                             </div>
@@ -215,8 +212,8 @@ $overdue_details = db_fetch_all($overdue_details_sql);
                             $days_overdue = $interval->days;
                         ?>
                         <tr class="hover bg-base-100/50">
-                            <td class="font-bold text-base-content"><?php echo htmlspecialchars($p['name']); ?></td>
-                            <td class="text-base-content/80"><?php echo htmlspecialchars($p['client_name']); ?></td>
+                            <td class="font-bold text-base-content"><?php echo e($p['name']); ?></td>
+                            <td class="text-base-content/80"><?php echo e($p['client_name']); ?></td>
                             <td class="text-sm font-bold text-red-500"><?php echo $deadline->format('Y-m-d'); ?></td>
                             <td>
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-600 border border-red-200">
@@ -261,8 +258,8 @@ $overdue_details = db_fetch_all($overdue_details_sql);
                         <tbody>
                             <?php foreach ($queue_projects as $p): ?>
                             <tr class="hover">
-                                <td class="font-bold"><?php echo htmlspecialchars($p['name']); ?></td>
-                                <td><?php echo htmlspecialchars($p['client_name']); ?></td>
+                                <td class="font-bold"><?php echo e($p['name']); ?></td>
+                                <td><?php echo e($p['client_name']); ?></td>
                                 <td class="text-sm opacity-70"><?php echo date('M d, Y', strtotime($p['created_at'])); ?></td>
                                 <td>
                                     <a href="projects/project_view.php?id=<?php echo $p['id']; ?>" class="btn btn-xs btn-primary">View</a>
@@ -341,13 +338,13 @@ $urgent_clients = db_fetch_all($urgent_sql);
                         <?php foreach ($urgent_clients as $client): ?>
                         <div class="bg-white p-3 rounded-lg shadow-sm border border-red-100 flex justify-between items-center group hover:shadow-md transition-all" id="urgent-item-<?php echo $client['id']; ?>">
                             <div>
-                                <div class="font-bold text-gray-800"><?php echo htmlspecialchars($client['name']); ?></div>
+                                <div class="font-bold text-gray-800"><?php echo e($client['name']); ?></div>
                                 <div class="text-xs text-red-400">
                                     <?php echo $client['last_contacted'] ? 'Last: ' . date('M d', strtotime($client['last_contacted'])) : 'Never contacted'; ?>
                                 </div>
                             </div>
                             <div class="flex gap-1">
-                                <a href="mailto:<?php echo $client['email']; ?>?subject=Checking in - <?php echo htmlspecialchars(get_user_name()); ?>&body=Hi <?php echo htmlspecialchars($client['name']); ?>,%0D%0A%0D%0AJust wanted to check in and see how things are going." class="btn btn-xs btn-error text-white">Email</a>
+                                <a href="mailto:<?php echo $client['email']; ?>?subject=Checking in - <?php echo e(get_user_name()); ?>&body=Hi <?php echo e($client['name']); ?>,%0D%0A%0D%0AJust wanted to check in and see how things are going." class="btn btn-xs btn-error text-white">Email</a>
                                 <button onclick="snoozeClient(<?php echo $client['id']; ?>)" class="btn btn-xs btn-ghost text-gray-400 hover:text-gray-600">Snooze</button>
                             </div>
                         </div>

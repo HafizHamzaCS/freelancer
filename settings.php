@@ -1,8 +1,10 @@
 <?php
 require_once 'header.php';
+require_role(['admin', 'member']);
 
 // Handle Settings Save
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    verify_csrf_token();
     // Password Change Logic
     if (isset($_POST['change_password'])) {
         $current = $_POST['current_password'];
@@ -87,6 +89,7 @@ function val($key, $default = '') {
         <!-- Content -->
         <div class="md:col-span-3">
             <form method="POST">
+                <?php csrf_field(); ?>
                 <!-- General Tab -->
                 <div x-show="tab === 'general'" class="card bg-base-100 shadow-xl">
                     <div class="card-body">
@@ -334,7 +337,5 @@ function val($key, $default = '') {
 </div>
 
 <?php require_once 'functions.php';
-require_once 'auth.php';
-
-require_role(['admin', 'member']); ?>
+require_once 'auth.php'; ?>
 <?php require_once 'footer.php'; ?>

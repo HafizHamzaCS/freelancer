@@ -52,6 +52,7 @@ require_once '../header.php';
             <?php endif; ?>
 
             <form method="POST">
+                <?php csrf_field(); ?>
                 <div class="form-control w-full mb-4">
                     <label class="label"><span class="label-text">Full Name</span></label>
                     <input type="text" name="name" class="input input-bordered w-full" value="<?php echo htmlspecialchars($user['name']); ?>" required />

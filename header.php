@@ -279,7 +279,7 @@ if ($current_page != 'login.php' && $current_page != 'logout.php') {
         <!-- Top Bar (Desktop) -->
         <div class="hidden lg:flex flex-col mb-6 bg-base-100 p-4 rounded-lg shadow-sm">
             <div class="flex justify-between items-center w-full">
-            <h1 class="text-2xl font-bold text-base-content"><?php echo isset($page_title) ? $page_title : ucfirst(str_replace(['.php', '_'], ['', ' '], $current_page)); ?></h1>
+            <h1 class="text-2xl font-bold text-base-content"><?php echo isset($page_title) ? e($page_title) : e(ucfirst(str_replace(['.php', '_'], ['', ' '], $current_page))); ?></h1>
             <div class="flex items-center gap-4">
                 <!-- Global Search -->
                 <div class="form-control mr-2">

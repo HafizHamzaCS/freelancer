@@ -44,7 +44,8 @@ require_once '../header.php';
                 <div class="alert alert-error mb-4"><?php echo $error; ?></div>
             <?php endif; ?>
 
-            <form method="POST">
+            <form method="POST" class="space-y-4">
+            <?php csrf_field(); ?>
                 <div class="form-control w-full mb-4">
                     <label class="label"><span class="label-text">Team Name</span></label>
                     <input type="text" name="name" class="input input-bordered w-full" required placeholder="e.g. Marketing Squad" />

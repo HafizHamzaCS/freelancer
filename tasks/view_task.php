@@ -278,6 +278,7 @@ document.addEventListener('alpine:init', () => {
         messages: [],
         newMessage: '',
         lastMsgId: 0,
+        csrf_token: '<?php echo generate_csrf_token(); ?>',
         activities: <?php echo json_encode(array_map(function($a){
             $a['date_formatted'] = date('M d, H:i', strtotime($a['created_at']));
             return $a;
@@ -299,6 +300,7 @@ document.addEventListener('alpine:init', () => {
         saveStatus() {
             this.loading = true;
             const formData = new FormData();
+            formData.append('csrf_token', this.csrf_token);
             formData.append('action', 'update_status');
             formData.append('task_id', taskId);
             formData.append('status', this.status);
@@ -317,6 +319,7 @@ document.addEventListener('alpine:init', () => {
             if(!file) return;
 
             const formData = new FormData();
+            formData.append('csrf_token', this.csrf_token);
             formData.append('task_id', taskId);
             formData.append('file', file);
 
@@ -344,6 +347,7 @@ document.addEventListener('alpine:init', () => {
             this.newMessage = ''; // Optimistic
 
             const formData = new FormData();
+            formData.append('csrf_token', this.csrf_token);
             formData.append('action', 'send_chat');
             formData.append('task_id', taskId);
             formData.append('message', msg);
@@ -354,6 +358,7 @@ document.addEventListener('alpine:init', () => {
 
         fetchChat() {
             const formData = new FormData();
+            formData.append('csrf_token', this.csrf_token);
             formData.append('action', 'get_chat');
             formData.append('task_id', taskId);
             formData.append('last_id', this.lastMsgId);

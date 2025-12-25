@@ -61,6 +61,7 @@ $generated_inv = 'INV-' . date('Y') . '-' . str_pad($next_id, 4, '0', STR_PAD_LE
     </div>
 
     <form method="POST" x-data="{ items: [{desc: '', qty: 1, price: 0}] }">
+        <?php csrf_field(); ?>
         <div class="card bg-base-100 shadow-xl mb-6">
             <div class="card-body">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

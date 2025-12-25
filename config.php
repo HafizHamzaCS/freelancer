@@ -344,6 +344,24 @@ if ($tf_cols) {
     }
 }
 
+// --- Security & Session Hardening ---
+// Disable error display to prevent information leakage
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
+
+// Harden Session Cookies
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+ini_set('session.use_strict_mode', 1);
+
+if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+    ini_set('session.cookie_secure', 1);
+}
+
+// Set Samesite attribute
+ini_set('session.cookie_samesite', 'Lax');
+
 // Start Session
 session_start();
 ?>

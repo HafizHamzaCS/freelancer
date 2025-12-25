@@ -35,7 +35,8 @@ require_once '../header.php';
 
     <div class="card bg-base-100 shadow-xl">
         <div class="card-body">
-            <form method="POST">
+            <form method="POST" class="space-y-4">
+            <?php csrf_field(); ?>
                 <div class="form-control w-full">
                     <label class="label">
                         <span class="label-text">Client Name</span>

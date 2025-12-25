@@ -10,30 +10,18 @@ if (!is_logged_in()) {
     exit;
 }
 
+// Security: Verify CSRF Token
+verify_csrf_token();
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'error' => 'Invalid request']);
     exit;
 }
 
-// Fallback for mime_content_type
-if (!function_exists('mime_content_type')) {
-    function mime_content_type($filename) {
-        return 'application/octet-stream';
-    }
-}
-
 // Global Exception Handler for JSON
 set_exception_handler(function($e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-    exit;
-});
-
-// Error Handler to catch warnings/notices
-set_error_handler(function($errno, $errstr, $errfile, $errline) {
-    if (!(error_reporting() & $errno)) return;
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => "PHP Error: $errstr"]);
+    echo json_encode(['success' => false, 'error' => 'Server Error: ' . $e->getMessage()]);
     exit;
 });
 
@@ -49,24 +37,23 @@ if (!isset($_FILES['file'])) {
 }
 
 $file = $_FILES['file'];
+
+// Security Validation using global helper
+if (!validate_upload($file)) {
+    echo json_encode(['success' => false, 'error' => 'Invalid file type or dangerous content detected.']);
+    exit;
+}
+
 $upload_dir = __DIR__ . '/../assets/uploads/tasks/';
 
 // Create dir if not exists
 if (!is_dir($upload_dir)) {
     if (!mkdir($upload_dir, 0755, true)) {
-        throw new Exception("Failed to create upload directory");
+        echo json_encode(['success' => false, 'error' => 'Failed to create upload directory']);
+        exit;
     }
-    file_put_contents($upload_dir . '.htaccess', "Deny from all\n<FilesMatch \"\.(jpg|jpeg|png|gif|pdf|docx|txt)$\">\nAllow from all\n</FilesMatch>");
-}
-
-// Security Validation
-$allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
-$file_mime = mime_content_type($file['tmp_name']);
-
-if (!in_array($file_mime, $allowed_types) && $file_mime !== 'application/octet-stream') {
-     // Optional: looser check if mime detection fails
-     // echo json_encode(['success' => false, 'error' => 'Invalid file type: ' . $file_mime]);
-     // exit;
+    // Secure the directory
+    file_put_contents($upload_dir . '.htaccess', "Deny from all\n<FilesMatch \"\.(jpg|jpeg|png|gif|pdf|docx|txt|zip)$\">\nAllow from all\n</FilesMatch>\nphp_flag engine off");
 }
 
 // Max size 10MB
@@ -75,10 +62,9 @@ if ($file['size'] > 10 * 1024 * 1024) {
     exit;
 }
 
-// Generate Name
-$ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-$clean_name = generate_slug(pathinfo($file['name'], PATHINFO_FILENAME));
-$new_name = $task_id . '_' . time() . '_' . substr(md5(rand()), 0, 8) . '.' . $ext;
+// Generate Secure Name
+$ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+$new_name = $task_id . '_' . time() . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
 $target_path = $upload_dir . $new_name;
 
 if (move_uploaded_file($file['tmp_name'], $target_path)) {
@@ -88,17 +74,19 @@ if (move_uploaded_file($file['tmp_name'], $target_path)) {
     $file_path = 'assets/uploads/tasks/' . $new_name;
     $file_size = $file['size'];
     
-    // Check if column exists or use raw query to avoid db_query die()
+    // Get MIME for DB
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $file_mime = finfo_file($finfo, $target_path);
+    finfo_close($finfo);
+    
     $sql = "INSERT INTO task_files (task_id, user_id, file_path, original_name, file_size, file_type) 
             VALUES ($task_id, $user_id, '$file_path', '$original_name', $file_size, '$file_mime')";
     
-    // Direct mysqli_query to avoid 'die' in db_query()
-    if (mysqli_query($conn, $sql)) {
+    if (db_query($sql)) {
          $new_file_id = mysqli_insert_id($conn);
         
         // Log Activity
-        $user_name = get_user_name();
-        mysqli_query($conn, "INSERT INTO task_activity (task_id, user_id, action_type, description) VALUES ($task_id, $user_id, 'file_upload', 'Uploaded file: $original_name')");
+        log_system_activity('File Upload', "Uploaded file: $original_name for task #$task_id");
         
         echo json_encode(['success' => true, 'file' => [
             'id' => $new_file_id,
@@ -107,11 +95,9 @@ if (move_uploaded_file($file['tmp_name'], $target_path)) {
             'date' => date('M d, H:i')
         ]]);
     } else {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Database Error: ' . mysqli_error($conn)]);
+        echo json_encode(['success' => false, 'error' => 'Database Error']);
     }
 } else {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Upload failed (move_uploaded_file error)']);
+    echo json_encode(['success' => false, 'error' => 'Upload failed']);
 }
 ?>

@@ -21,6 +21,9 @@ function login($email, $password) {
             mysqli_query($conn, "UPDATE users SET login_token = '$token' WHERE id = $user_id");
         }
         
+        // Prevent Session Fixation
+        session_regenerate_id(true);
+        
         // Set Session
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_name'] = $user['name'];
@@ -42,8 +45,8 @@ function login($email, $password) {
     $client = db_fetch_one($client_sql);
     
     if ($client && $client['password'] && password_verify($password, $client['password'])) {
-        // Clients don't strictly need single-device lock, but we can add it if needed.
-        // For now, simple login.
+        // Prevent Session Fixation
+        session_regenerate_id(true);
         
         $_SESSION['user_id'] = $client['id'];
         $_SESSION['user_name'] = $client['name'];
@@ -147,5 +150,8 @@ function require_role($roles) {
     if (!$user || !in_array($user['role'], $roles)) {
         redirect('login.php');
     }
+    
+    // Security: Any role-protected page must also verify CSRF on POST
+    verify_csrf_token();
 }
 ?>

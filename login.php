@@ -1,7 +1,4 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 require_once 'config.php';
 require_once 'functions.php';
 
@@ -23,6 +20,7 @@ if (isset($_GET['error']) && $_GET['error'] == 'lockout') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    verify_csrf_token();
     $email = $_POST['email'];
     $password = $_POST['password'];
     
@@ -80,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <?php endif; ?>
 
             <form method="POST" x-data="{ showPass: false }">
+                <?php csrf_field(); ?>
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text font-semibold">Email</span>

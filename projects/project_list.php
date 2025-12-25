@@ -229,13 +229,14 @@ require_once '../header.php';
                             </td>
                             <td>
                                 <div class="font-bold"><a href="<?php echo get_project_url($project); ?>" class="link link-hover"><?php echo htmlspecialchars($project['name']); ?></a></div>
+                                <div class="font-bold"><a href="<?php echo get_project_url($project); ?>" class="link link-hover"><?php echo e($project['name']); ?></a></div>
                                 <div class="badge <?php echo get_source_badge_class($project['source'] ?? 'Direct'); ?> badge-xs mt-1">
                                     <?php echo htmlspecialchars($project['source'] ?? 'Direct'); ?>
                                 </div>
                             </td>
                             <td>
                                 <a href="../clients/client_view.php?id=<?php echo $project['client_id']; ?>" class="link link-hover">
-                                    <?php echo htmlspecialchars($project['client_name']); ?>
+                                    <?php echo e($project['client_name']); ?>
                                 </a>
                             </td>
                             <td>
@@ -275,7 +276,7 @@ require_once '../header.php';
                                         <?php foreach ($members_list as $member): ?>
                                             <div class="flex items-center gap-2">
                                                 <div class="w-1.5 h-1.5 rounded-full bg-base-content/50"></div>
-                                                <span class="text-sm"><?php echo htmlspecialchars($member); ?></span>
+                                                <span class="text-sm"><?php echo e($member); ?></span>
                                             </div>
                                         <?php endforeach; ?>
                                     </div>

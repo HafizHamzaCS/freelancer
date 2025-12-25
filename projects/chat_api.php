@@ -41,29 +41,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (strpos($contentType, 'application/json') !== false) {
         $input = json_decode(file_get_contents('php://input'), true);
+        
+        // Manual CSRF Check for JSON
+        $token = $input['csrf_token'] ?? '';
+        if (!$token || $token !== ($_SESSION['csrf_token'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'CSRF token validation failed.']);
+            exit;
+        }
+
         $project_id = isset($input['project_id']) ? (int)$input['project_id'] : 0;
         $message = isset($input['message']) ? escape($input['message']) : '';
     } else {
+        // Security: Verify CSRF Token for standard POST
+        verify_csrf_token();
+        
         // Form Data
         $project_id = isset($_POST['project_id']) ? (int)$_POST['project_id'] : 0;
         $message = isset($_POST['message']) ? escape($_POST['message']) : '';
         
         // Handle File Upload
         if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] == 0) {
-            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'zip', 'txt'];
-            $filename = $_FILES['attachment']['name'];
-            $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-            
-            if (in_array($ext, $allowed)) {
+            $file = $_FILES['attachment'];
+            if (validate_upload($file)) {
                 $upload_dir = '../assets/uploads/chat/';
-                if (!file_exists($upload_dir)) {
-                    mkdir($upload_dir, 0777, true);
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                    file_put_contents($upload_dir . '.htaccess', "Deny from all\n<FilesMatch \"\.(jpg|jpeg|png|gif|pdf|docx|txt|zip)$\">\nAllow from all\n</FilesMatch>\nphp_flag engine off");
                 }
                 
-                $new_name = uniqid() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $filename);
+                $filename = $file['name'];
+                $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                $new_name = uniqid() . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
                 $destination = $upload_dir . $new_name;
                 
-                if (move_uploaded_file($_FILES['attachment']['tmp_name'], $destination)) {
+                if (move_uploaded_file($file['tmp_name'], $destination)) {
                     $attachment_path = 'assets/uploads/chat/' . $new_name;
                     $attachment_type = in_array($ext, ['jpg', 'jpeg', 'png', 'gif']) ? 'image' : 'file';
                 }

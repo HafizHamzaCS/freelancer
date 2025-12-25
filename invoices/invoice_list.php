@@ -137,15 +137,15 @@ require_once '../header.php';
                             <td><input type="checkbox" value="<?php echo $invoice['id']; ?>" class="checkbox checkbox-sm bulk-checkbox" /></td>
                             <td class="font-bold">
                                 <a href="invoice_view.php?id=<?php echo $invoice['id']; ?>" class="link link-hover">
-                                    <?php echo htmlspecialchars($invoice['invoice_number']); ?>
+                                    <?php echo e($invoice['invoice_number']); ?>
                                 </a>
                             </td>
                             <td>
                                 <a href="../clients/client_view.php?id=<?php echo $invoice['client_id']; ?>" class="link link-hover">
-                                    <?php echo htmlspecialchars($invoice['client_name']); ?>
+                                    <?php echo e($invoice['client_name']); ?>
                                 </a>
                             </td>
-                            <td><a href="../projects/project_view.php?id=<?php echo $invoice['project_id']; ?>" class="link link-hover"><?php echo htmlspecialchars($invoice['project_name']); ?></a></td>
+                            <td><a href="../projects/project_view.php?id=<?php echo $invoice['project_id']; ?>" class="link link-hover"><?php echo e($invoice['project_name']); ?></a></td>
                             <td><?php echo format_money($invoice['amount']); ?></td>
                             <td>
                                 <span class="badge <?php echo $invoice['status'] == 'Paid' ? 'badge-success' : ($invoice['status'] == 'Unpaid' ? 'badge-error' : 'badge-warning'); ?>">

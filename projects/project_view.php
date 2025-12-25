@@ -1,8 +1,4 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 require_once '../config.php';
 require_once '../functions.php';
 
@@ -206,6 +202,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $title = escape($_POST['title']);
         $due = escape($_POST['due_date']);
         db_query("INSERT INTO milestones (project_id, title, due_date, status) VALUES ($id, '$title', '$due', 'Pending')");
+        
+        if (!empty($_SERVER['HTTP_HX_REQUEST'])) {
+            $milestones = db_fetch_all("SELECT * FROM milestones WHERE project_id = $id ORDER BY due_date ASC");
+            include 'milestones_partial.php';
+            exit;
+        }
         $tab_redirect = 'milestones';
     }
     // Toggle Milestone Status
@@ -214,20 +216,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $current = db_fetch_one("SELECT status FROM milestones WHERE id = $m_id");
         $new_status = $current['status'] == 'Completed' ? 'Pending' : 'Completed';
         db_query("UPDATE milestones SET status = '$new_status' WHERE id = $m_id");
+        
+        if (!empty($_SERVER['HTTP_HX_REQUEST'])) {
+            $milestones = db_fetch_all("SELECT * FROM milestones WHERE project_id = $id ORDER BY due_date ASC");
+            echo '<div id="milestones-list" class="space-y-4">';
+            include 'milestones_partial.php';
+            echo '</div>';
+            exit;
+        }
         $tab_redirect = 'milestones';
     }
     // Upload File
     if (isset($_FILES['project_file'])) {
         $file = $_FILES['project_file'];
-        $filename = escape($file['name']);
-        $target_dir = "../assets/uploads/";
-        if (!file_exists($target_dir)) {
-            mkdir($target_dir, 0777, true);
-        }
-        $target_file = $target_dir . basename($file['name']);
-        
-        if (move_uploaded_file($file['tmp_name'], $target_file)) {
-            db_query("INSERT INTO project_files (project_id, filename, filepath) VALUES ($id, '$filename', '$target_file')");
+        if (validate_upload($file)) {
+            $filename = escape($file['name']);
+            $target_dir = "../assets/uploads/";
+            if (!is_dir($target_dir)) {
+                mkdir($target_dir, 0755, true);
+                file_put_contents($target_dir . '.htaccess', "Deny from all\n<FilesMatch \"\.(jpg|jpeg|png|gif|pdf|docx|txt|zip)$\">\nAllow from all\n</FilesMatch>\nphp_flag engine off");
+            }
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $new_name = 'p' . $id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+            $target_file = $target_dir . $new_name;
+            
+            if (move_uploaded_file($file['tmp_name'], $target_file)) {
+                db_query("INSERT INTO project_files (project_id, filename, filepath) VALUES ($id, '$filename', '$target_file')");
+            }
+        } else {
+            set_flash('error', 'Invalid file type or dangerous content.');
         }
         $tab_redirect = 'files';
     }
@@ -297,9 +314,9 @@ require_once '../header.php';
 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
     <div>
         <div class="flex items-center gap-2 mb-1">
-            <h2 class="text-3xl font-bold"><?php echo htmlspecialchars($project['name']); ?></h2>
+            <h2 class="text-3xl font-bold"><?php echo e($project['name']); ?></h2>
             <div class="badge <?php echo get_kanban_source_badge($project['source'] ?? 'Direct'); ?>">
-                <?php echo htmlspecialchars($project['source'] ?? 'Direct'); ?>
+                <?php echo e($project['source'] ?? 'Direct'); ?>
             </div>
         </div>
         <div class="text-sm breadcrumbs text-base-content/70">
@@ -400,6 +417,7 @@ require_once '../header.php';
                 </div>
                 
                 <form method="POST" class="space-y-4">
+                    <?php csrf_field(); ?>
                     <div class="form-control">
                         <textarea name="description" class="textarea textarea-bordered h-64 text-base" placeholder="Enter project description..."><?php echo htmlspecialchars($project['description'] ?? ''); ?></textarea>
                     </div>
@@ -431,7 +449,7 @@ require_once '../header.php';
                             <div class="flex-grow min-w-0 cursor-pointer" @click="toggleExpand">
                                 <div class="flex items-center gap-2">
                                     <span class="font-bold truncate <?php echo $task['status'] == 'Done' ? 'line-through opacity-50' : ''; ?>">
-                                        <a href="../tasks/view_task.php?id=<?php echo $task['id']; ?>" class="link link-hover" @click.stop><?php echo htmlspecialchars($task['title']); ?></a>
+                                        <a href="../tasks/view_task.php?id=<?php echo $task['id']; ?>" class="link link-hover" @click.stop><?php echo e($task['title']); ?></a>
                                     </span>
                                     <span class="badge badge-xs <?php echo match($task['status']) { 'In Progress'=>'badge-info', 'Done'=>'badge-success', default=>'badge-ghost' }; ?>"><?php echo $task['status']; ?></span>
                                 </div>
@@ -484,7 +502,7 @@ require_once '../header.php';
                                     <!-- Description Tab -->
                                     <div x-show="tab === 'overview'" class="animate-fade-in-up">
                                         <div class="prose prose-sm max-w-none text-base-content/80 mb-6">
-                                            <?php echo $task['description'] ? nl2br(htmlspecialchars($task['description'])) : '<span class="italic opacity-50">No additional details provided.</span>'; ?>
+                                            <?php echo $task['description'] ? nl2br(e($task['description'])) : '<span class="italic opacity-50">No additional details provided.</span>'; ?>
                                         </div>
                                         
                                         <!-- Meta Grid -->
@@ -774,6 +792,7 @@ require_once '../header.php';
                     <div class="modal-box w-11/12 max-w-3xl">
                         <h3 class="font-bold text-lg" id="modal_title">Create Task</h3>
                         <form method="POST" class="mt-4">
+                            <?php csrf_field(); ?>
                             <input type="hidden" name="save_task" value="1">
                             <input type="hidden" name="task_id" id="modal_task_id" value="0">
                             
@@ -848,6 +867,7 @@ require_once '../header.php';
                         <h3 class="font-bold text-lg text-error">Delete Task</h3>
                         <p class="py-4">Are you sure you want to delete this task? This action cannot be undone.</p>
                         <form method="POST" class="modal-action">
+                            <?php csrf_field(); ?>
                             <input type="hidden" name="delete_task" id="delete_task_id_input">
                             <button class="btn btn-error">Yes, Delete</button>
                             <button type="button" class="btn" onclick="document.getElementById('delete_task_modal').close()">Cancel</button>
@@ -929,6 +949,7 @@ require_once '../header.php';
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="font-bold text-lg">Time Log</h3>
                     <form method="POST">
+                        <?php csrf_field(); ?>
                         <input type="hidden" name="time_action" value="start">
                         <button class="btn btn-sm btn-accent gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -989,6 +1010,7 @@ require_once '../header.php';
                     </div>
                     
                     <form method="POST" class="flex gap-2">
+                        <?php csrf_field(); ?>
                         <input type="hidden" name="post_comment" value="1">
                         <textarea name="comment_text" class="textarea textarea-bordered w-full" placeholder="Type your message here..." rows="2" required></textarea>
                         <button class="btn btn-primary self-end">Send</button>
@@ -1022,6 +1044,7 @@ require_once '../header.php';
                 </div>
                 
                 <form method="POST" enctype="multipart/form-data" class="card bg-base-100 border border-base-300">
+                    <?php csrf_field(); ?>
                     <div class="card-body p-4">
                         <div class="form-control w-full">
                             <label class="label"><span class="label-text">Upload New File</span></label>
@@ -1359,6 +1382,7 @@ require_once '../header.php';
                 <div class="card bg-base-100 border border-base-300 mb-8">
                     <div class="card-body p-4">
                         <form id="commentForm">
+                            <?php csrf_field(); ?>
                             <input type="hidden" name="project_id" value="<?php echo $id; ?>">
                             <div class="form-control">
                                 <textarea name="content" class="textarea textarea-bordered h-24" placeholder="Post a comment or update..."></textarea>
@@ -1449,39 +1473,16 @@ require_once '../header.php';
                     <button onclick="add_milestone_modal.showModal()" class="btn btn-sm btn-primary">Add Milestone</button>
                 </div>
 
-                <div class="space-y-4">
-                    <?php if (empty($milestones)): ?>
-                        <div class="text-center py-8 opacity-50 italic">No milestones set.</div>
-                    <?php else: ?>
-                        <?php foreach ($milestones as $m): ?>
-                            <div class="flex items-center justify-between p-4 bg-base-200 rounded-lg group">
-                                <div class="flex items-center gap-4">
-                                    <form method="POST">
-                                        <input type="hidden" name="toggle_milestone" value="<?php echo $m['id']; ?>">
-                                        <input type="checkbox" class="checkbox checkbox-primary" 
-                                               <?php echo $m['status'] == 'Completed' ? 'checked' : ''; ?> 
-                                               onchange="this.form.submit()">
-                                    </form>
-                                    <div>
-                                        <div class="font-bold <?php echo $m['status'] == 'Completed' ? 'line-through opacity-50' : ''; ?>">
-                                            <?php echo htmlspecialchars($m['title']); ?>
-                                        </div>
-                                        <div class="text-xs opacity-50">Due: <?php echo date('M d, Y', strtotime($m['due_date'])); ?></div>
-                                    </div>
-                                </div>
-                                <div class="badge <?php echo $m['status'] == 'Completed' ? 'badge-success' : 'badge-ghost'; ?>">
-                                    <?php echo $m['status']; ?>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                <div id="milestones-list" class="space-y-4">
+                    <?php include 'milestones_partial.php'; ?>
                 </div>
 
                 <!-- Add Milestone Modal -->
                 <dialog id="add_milestone_modal" class="modal">
                     <div class="modal-box">
                         <h3 class="font-bold text-lg mb-4">Add New Milestone</h3>
-                        <form method="POST" class="space-y-4">
+                        <form hx-post="<?php echo $_SERVER['REQUEST_URI']; ?>" hx-target="#milestones-list" hx-on::after-request="add_milestone_modal.close()" class="space-y-4">
+                            <?php csrf_field(); ?>
                             <div class="form-control">
                                 <label class="label"><span class="label-text">Milestone Title</span></label>
                                 <input type="text" name="title" class="input input-bordered" required>
