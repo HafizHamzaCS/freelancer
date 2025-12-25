@@ -99,6 +99,23 @@ if (isset($_SESSION['is_client']) && $_SESSION['is_client']) {
     if (!$check_project || $check_project['client_id'] != $current_client_id) {
         redirect('projects/project_list.php');
     }
+} elseif (!in_array($_SESSION['role'], ['admin', 'manager'])) {
+    // Access Control: Team members must be assigned to the project
+    $user_id = $_SESSION['user_id'];
+    $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+    $slug = isset($_GET['slug']) ? escape($_GET['slug']) : '';
+
+    $is_assigned = false;
+    if ($slug) {
+        $is_assigned = db_fetch_one("SELECT 1 FROM projects p JOIN project_members pm ON p.id = pm.project_id WHERE p.slug = '$slug' AND pm.user_id = $user_id");
+    } elseif ($id) {
+        $is_assigned = db_fetch_one("SELECT 1 FROM project_members WHERE project_id = $id AND user_id = $user_id");
+    }
+
+    if (!$is_assigned) {
+        $_SESSION['flash_error'] = "You are not assigned to this project.";
+        redirect('projects/project_list.php');
+    }
 }
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -288,7 +305,11 @@ require_once '../header.php';
         <div class="text-sm breadcrumbs text-base-content/70">
             <ul>
                 <li><a href="<?php echo APP_URL; ?>/projects/project_list.php">Projects</a></li>
+                <?php if (in_array($_SESSION['role'], ['admin', 'manager']) || (isset($_SESSION['is_client']) && $_SESSION['is_client'])): ?>
                 <li><?php echo htmlspecialchars($client['name']); ?></li>
+                <?php else: ?>
+                <li>Client</li>
+                <?php endif; ?>
             </ul>
         </div>
     </div>
@@ -409,7 +430,9 @@ require_once '../header.php';
                             
                             <div class="flex-grow min-w-0 cursor-pointer" @click="toggleExpand">
                                 <div class="flex items-center gap-2">
-                                    <span class="font-bold truncate <?php echo $task['status'] == 'Done' ? 'line-through opacity-50' : ''; ?>"><?php echo htmlspecialchars($task['title']); ?></span>
+                                    <span class="font-bold truncate <?php echo $task['status'] == 'Done' ? 'line-through opacity-50' : ''; ?>">
+                                        <a href="../tasks/view_task.php?id=<?php echo $task['id']; ?>" class="link link-hover" @click.stop><?php echo htmlspecialchars($task['title']); ?></a>
+                                    </span>
                                     <span class="badge badge-xs <?php echo match($task['status']) { 'In Progress'=>'badge-info', 'Done'=>'badge-success', default=>'badge-ghost' }; ?>"><?php echo $task['status']; ?></span>
                                 </div>
                                 <div class="text-xs opacity-50 truncate">
@@ -1029,7 +1052,15 @@ require_once '../header.php';
                             <div>
                                 <h3 class="font-bold text-sm"><?php echo htmlspecialchars($project['name']); ?></h3>
                                 <p class="text-xs opacity-80">
-                                    <?php echo htmlspecialchars($client['name']); ?>, Admin, Team
+                                    <?php 
+                                    if (in_array($_SESSION['role'], ['admin', 'manager'])) {
+                                        echo htmlspecialchars($client['name']) . ", Admin, Team";
+                                    } elseif (isset($_SESSION['is_client']) && $_SESSION['is_client']) {
+                                        echo "Admin, Team";
+                                    } else {
+                                        echo "Client, Team";
+                                    }
+                                    ?>
                                 </p>
                             </div>
                         </div>

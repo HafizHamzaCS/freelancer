@@ -41,7 +41,13 @@ switch ($action) {
         foreach ($messages as &$msg) {
             $msg['time'] = date('H:i', strtotime($msg['created_at']));
             $msg['is_me'] = ($msg['user_id'] == $_SESSION['user_id']);
-            $msg['avatar_letter'] = substr($msg['user_name'], 0, 1);
+            
+            $sender_name = $msg['user_name'];
+            if (isset($_SESSION['is_client']) && $_SESSION['is_client'] && $msg['user_id'] != $_SESSION['user_id']) {
+                $sender_name = 'Team Member';
+            }
+            $msg['user_name'] = $sender_name;
+            $msg['avatar_letter'] = substr($sender_name, 0, 1);
         }
         
         echo json_encode(['success' => true, 'messages' => $messages]);

@@ -11,12 +11,15 @@ function login($email, $password) {
     $user = db_fetch_one($user_sql);
     
     if ($user && password_verify($password, $user['password'])) {
-        // Generate Login Token for Single-Device Lock
-        $token = bin2hex(random_bytes(32));
+        // Generate Login Token for Single-Device Lock (ONLY for Admin)
+        $token = null;
         $user_id = $user['id'];
         
-        // Update Token in DB
-        mysqli_query($conn, "UPDATE users SET login_token = '$token' WHERE id = $user_id");
+        if ($user['role'] === 'admin') {
+            $token = bin2hex(random_bytes(32));
+            // Update Token in DB
+            mysqli_query($conn, "UPDATE users SET login_token = '$token' WHERE id = $user_id");
+        }
         
         // Set Session
         $_SESSION['user_id'] = $user['id'];
@@ -65,8 +68,9 @@ function login($email, $password) {
 function check_lockout() {
     global $conn;
     
-    if (!isset($_SESSION['user_id']) || (isset($_SESSION['is_client']) && $_SESSION['is_client'])) {
-        return; // Not logged in or is client (skip lock)
+    // Only check single-session lockout for admin role
+    if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+        return; 
     }
     
     $user_id = $_SESSION['user_id'];

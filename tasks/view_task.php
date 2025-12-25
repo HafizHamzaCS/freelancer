@@ -21,6 +21,19 @@ if (!$task) {
     die("Task not found.");
 }
 
+// Access Control
+if (!in_array($_SESSION['role'], ['admin', 'manager'])) {
+    $curr_user_id = $_SESSION['user_id'];
+    $project_id = $task['project_id'];
+    $is_assigned_to_task = ($task['assigned_to'] == $curr_user_id);
+    $is_project_member = db_fetch_one("SELECT 1 FROM project_members WHERE project_id = $project_id AND user_id = $curr_user_id");
+    
+    if (!$is_assigned_to_task && !$is_project_member) {
+        $_SESSION['flash_error'] = "Access denied.";
+        redirect('index.php');
+    }
+}
+
 // Fetch Files
 $files = db_fetch_all("SELECT * FROM task_files WHERE task_id = $id ORDER BY uploaded_at DESC");
 

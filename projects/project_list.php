@@ -23,6 +23,10 @@ if (isset($_SESSION['is_client']) && $_SESSION['is_client']) {
     }
 
     $where .= " AND p.client_id = $client_id";
+} elseif (!in_array($_SESSION['role'], ['admin', 'manager'])) {
+    // If not admin/manager and not client, it's a team member (member, developer, viewer, etc.)
+    $user_id = $_SESSION['user_id'];
+    $where .= " AND EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = $user_id)";
 }
 
 if ($search) {
@@ -94,7 +98,7 @@ if (isset($_GET['ajax_search'])) {
                     <input type="checkbox" value="' . $project['id'] . '" class="checkbox checkbox-sm bulk-checkbox" />
                   </td>';
             echo '<td>
-                    <div class="font-bold">' . htmlspecialchars($project['name']) . '</div>
+                    <div class="font-bold"><a href="' . get_project_url($project) . '" class="link link-hover">' . htmlspecialchars($project['name']) . '</a></div>
                     <div class="badge ' . $source_badge . ' badge-xs mt-1">' . htmlspecialchars($project['source'] ?? 'Direct') . '</div>
                   </td>';
             echo '<td><a href="../clients/client_view.php?id=' . $project['client_id'] . '" class="link link-hover">' . htmlspecialchars($project['client_name']) . '</a></td>';
@@ -224,7 +228,7 @@ require_once '../header.php';
                                 <input type="checkbox" name="ids[]" value="<?php echo $project['id']; ?>" class="checkbox checkbox-sm bulk-checkbox" />
                             </td>
                             <td>
-                                <div class="font-bold"><?php echo htmlspecialchars($project['name']); ?></div>
+                                <div class="font-bold"><a href="<?php echo get_project_url($project); ?>" class="link link-hover"><?php echo htmlspecialchars($project['name']); ?></a></div>
                                 <div class="badge <?php echo get_source_badge_class($project['source'] ?? 'Direct'); ?> badge-xs mt-1">
                                     <?php echo htmlspecialchars($project['source'] ?? 'Direct'); ?>
                                 </div>

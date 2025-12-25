@@ -53,7 +53,8 @@ if (isset($_GET['ajax_search'])) {
                             </div>
                         </div>
                         <div>
-                            <div class="font-bold">' . htmlspecialchars($client['name']) . 
+                            <div class="font-bold">
+                                <a href="' . get_client_url($client) . '" class="link link-hover">' . htmlspecialchars($client['name']) . '</a>' .
                                 ($client['total_earnings'] > 5000 ? '<span class="badge badge-warning badge-xs ml-1" title="High Value Client">VIP</span>' : '') .
                             '</div>
                             <div class="text-sm opacity-50 text-base-content/60">ID: #' . $client['id'] . '</div>
@@ -141,7 +142,7 @@ require_once '../header.php';
                                     </div>
                                     <div>
                                         <div class="font-bold">
-                                            <?php echo htmlspecialchars($client['name']); ?>
+                                            <a href="client_view.php?id=<?php echo $client['id']; ?>" class="link link-hover"><?php echo htmlspecialchars($client['name']); ?></a>
                                             <?php if ($client['total_earnings'] > 5000): ?>
                                                 <span class="badge badge-warning badge-xs" title="High Value Client">VIP</span>
                                             <?php endif; ?>

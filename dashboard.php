@@ -14,17 +14,24 @@ if (isset($_SESSION['is_client']) && $_SESSION['is_client']) {
     redirect('projects/project_list.php');
 }
 
+// --- User Context Filter ---
+$user_context_filter = "1=1";
+if (!in_array($_SESSION['role'], ['admin', 'manager'])) {
+    $uid = $_SESSION['user_id'];
+    $user_context_filter = "EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = $uid)";
+}
+
 // --- Projects Queue ---
-$queue_sql = "SELECT p.*, c.name as client_name FROM projects p JOIN clients c ON p.client_id = c.id WHERE p.status = 'Pending' ORDER BY p.created_at ASC";
+$queue_sql = "SELECT p.*, c.name as client_name FROM projects p JOIN clients c ON p.client_id = c.id WHERE p.status = 'Pending' AND $user_context_filter ORDER BY p.created_at ASC";
 $queue_projects = db_fetch_all($queue_sql);
 
 // --- Other Existing Stats (Preserved) ---
 // Active Projects
-$projects_sql = "SELECT COUNT(*) as total FROM projects WHERE status = 'In Progress'";
+$projects_sql = "SELECT COUNT(*) as total FROM projects p WHERE p.status = 'In Progress' AND $user_context_filter";
 $active_projects = db_fetch_one($projects_sql)['total'];
 
 // Overdue Projects
-$overdue_sql = "SELECT COUNT(*) as total FROM projects WHERE deadline < CURDATE() AND status != 'Completed'";
+$overdue_sql = "SELECT COUNT(*) as total FROM projects p WHERE p.deadline < CURDATE() AND p.status != 'Completed' AND $user_context_filter";
 $overdue_projects = db_fetch_one($overdue_sql)['total'];
 
 // Follow Up Clients (Random 4 Active)
@@ -46,16 +53,15 @@ $clients_count_sql = "SELECT COUNT(*) as total FROM clients WHERE status = 'Acti
 $total_clients = db_fetch_one($clients_count_sql)['total'];
 
 // 4. Completed Projects
-$completed_sql = "SELECT COUNT(*) as total FROM projects WHERE status = 'Completed'";
+$completed_sql = "SELECT COUNT(*) as total FROM projects p WHERE p.status = 'Completed' AND $user_context_filter";
 $completed_projects = db_fetch_one($completed_sql)['total'];
 
 // 5. Upcoming Events (Milestones)
-// 5. Upcoming Events (Milestones)
-$events_sql = "SELECT m.*, p.name as project_name FROM milestones m JOIN projects p ON m.project_id = p.id WHERE m.status != 'Completed' AND m.due_date >= CURDATE() ORDER BY m.due_date ASC LIMIT 5";
+$events_sql = "SELECT m.*, p.name as project_name FROM milestones m JOIN projects p ON m.project_id = p.id WHERE m.status != 'Completed' AND m.due_date >= CURDATE() AND $user_context_filter ORDER BY m.due_date ASC LIMIT 5";
 $upcoming_events = db_fetch_all($events_sql);
 
 // 6. Delayed Projects (Details)
-$overdue_details_sql = "SELECT p.*, c.name as client_name FROM projects p JOIN clients c ON p.client_id = c.id WHERE p.deadline < CURDATE() AND p.status != 'Completed' ORDER BY p.deadline ASC";
+$overdue_details_sql = "SELECT p.*, c.name as client_name FROM projects p JOIN clients c ON p.client_id = c.id WHERE p.deadline < CURDATE() AND p.status != 'Completed' AND $user_context_filter ORDER BY p.deadline ASC";
 $overdue_details = db_fetch_all($overdue_details_sql);
 ?>
 

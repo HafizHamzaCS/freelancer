@@ -40,7 +40,7 @@ if (isset($_GET['ajax_search'])) {
                                 <span>' . substr($user['name'], 0, 1) . '</span>
                             </div>
                         </div>
-                        <div class="font-bold">' . htmlspecialchars($user['name']) . '</div>
+                        <div class="font-bold"><a href="view.php?id=' . $user['id'] . '" class="link link-hover">' . htmlspecialchars($user['name']) . '</a></div>
                     </div>
                 </td>';
             echo '<td>' . htmlspecialchars($user['email']) . '</td>';
@@ -117,7 +117,7 @@ require_once '../header.php';
                                             <span><?php echo substr($user['name'], 0, 1); ?></span>
                                         </div>
                                     </div>
-                                    <div class="font-bold"><?php echo htmlspecialchars($user['name']); ?></div>
+                                    <div class="font-bold"><a href="view.php?id=<?php echo $user['id']; ?>" class="link link-hover"><?php echo htmlspecialchars($user['name']); ?></a></div>
                                 </div>
                             </td>
                             <td><?php echo htmlspecialchars($user['email']); ?></td>

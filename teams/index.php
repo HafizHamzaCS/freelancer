@@ -60,7 +60,7 @@ if (isset($_GET['ajax_search'])) {
                     </div>
                     <div class="card-body">
                         <h2 class="card-title justify-between">
-                            ' . htmlspecialchars($team['name']) . '
+                            <a href="view.php?id=' . $team['id'] . '" class="link link-hover">' . htmlspecialchars($team['name']) . '</a>
                             <div class="badge badge-secondary">' . $team['member_count'] . ' Members</div>
                         </h2>
                         <p class="text-sm text-base-content/70 mb-4">' . htmlspecialchars($team['description']) . '</p>
@@ -120,7 +120,7 @@ require_once '../header.php';
         </div>
         <div class="card-body">
             <h2 class="card-title justify-between">
-                <?php echo htmlspecialchars($team['name']); ?>
+                <a href="view.php?id=<?php echo $team['id']; ?>" class="link link-hover"><?php echo htmlspecialchars($team['name']); ?></a>
                 <div class="badge badge-secondary"><?php echo $team['member_count']; ?> Members</div>
 
 

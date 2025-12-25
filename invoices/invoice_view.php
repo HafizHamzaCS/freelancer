@@ -13,6 +13,28 @@ if (!$invoice) {
     redirect('invoices/invoice_list.php');
 }
 
+// Access Control
+if (isset($_SESSION['is_client']) && $_SESSION['is_client']) {
+    $current_client_id = 0;
+    if (isset($_SESSION['user_type']) && $_SESSION['user_type'] == 'user') {
+        $email = $_SESSION['user_email'];
+        $cr = db_fetch_one("SELECT id FROM clients WHERE email = '$email'");
+        if ($cr) $current_client_id = $cr['id'];
+    } else {
+        $current_client_id = $_SESSION['user_id'];
+    }
+    if ($invoice['client_id'] != $current_client_id) {
+        redirect('invoices/invoice_list.php');
+    }
+} elseif (!in_array($_SESSION['role'], ['admin', 'manager'])) {
+    $uid = $_SESSION['user_id'];
+    $project_id = $invoice['project_id'];
+    $is_member = db_fetch_one("SELECT 1 FROM project_members WHERE project_id = $project_id AND user_id = $uid");
+    if (!$is_member) {
+        redirect('invoices/invoice_list.php');
+    }
+}
+
 // Handle Status Change
 if (isset($_GET['mark_paid'])) {
     mysqli_query($conn, "UPDATE invoices SET status = 'Paid' WHERE id = $id");

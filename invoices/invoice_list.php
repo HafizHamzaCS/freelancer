@@ -13,6 +13,21 @@ if ($status_filter) {
     $where .= " AND i.status = '$status_filter'";
 }
 
+if (isset($_SESSION['is_client']) && $_SESSION['is_client']) {
+    $client_id = 0;
+    if (isset($_SESSION['user_type']) && $_SESSION['user_type'] == 'user') {
+        $email = $_SESSION['user_email'];
+        $cr = db_fetch_one("SELECT id FROM clients WHERE email = '$email'");
+        if ($cr) $client_id = $cr['id'];
+    } else {
+        $client_id = $_SESSION['user_id'];
+    }
+    $where .= " AND i.client_id = $client_id";
+} elseif (!in_array($_SESSION['role'], ['admin', 'manager'])) {
+    $uid = $_SESSION['user_id'];
+    $where .= " AND i.project_id IN (SELECT project_id FROM project_members WHERE user_id = $uid)";
+}
+
 $sql = "SELECT i.*, c.name as client_name, p.name as project_name 
         FROM invoices i 
         LEFT JOIN clients c ON i.client_id = c.id 
@@ -42,7 +57,7 @@ if (isset($_GET['ajax_search'])) {
                   </td>';
             echo '<td class="font-bold"><a href="invoice_view.php?id=' . $invoice['id'] . '" class="link link-hover">' . htmlspecialchars($invoice['invoice_number']) . '</a></td>';
             echo '<td><a href="../clients/client_view.php?id=' . $invoice['client_id'] . '" class="link link-hover">' . htmlspecialchars($invoice['client_name']) . '</a></td>';
-            echo '<td>' . htmlspecialchars($invoice['project_name']) . '</td>';
+            echo '<td><a href="../projects/project_view.php?id=' . $invoice['project_id'] . '" class="link link-hover">' . htmlspecialchars($invoice['project_name']) . '</a></td>';
             echo '<td>' . format_money($invoice['amount']) . '</td>';
             echo '<td><span class="badge ' . $status_badge . '">' . $invoice['status'] . '</span></td>';
             echo '<td><span class="' . ($is_overdue ? 'text-error font-bold' : '') . '">' . date('M d, Y', $due) . ($is_overdue ? ' <span class="tooltip" data-tip="Overdue!">⚠️</span>' : '') . '</span></td>';
@@ -130,7 +145,7 @@ require_once '../header.php';
                                     <?php echo htmlspecialchars($invoice['client_name']); ?>
                                 </a>
                             </td>
-                            <td><?php echo htmlspecialchars($invoice['project_name']); ?></td>
+                            <td><a href="../projects/project_view.php?id=<?php echo $invoice['project_id']; ?>" class="link link-hover"><?php echo htmlspecialchars($invoice['project_name']); ?></a></td>
                             <td><?php echo format_money($invoice['amount']); ?></td>
                             <td>
                                 <span class="badge <?php echo $invoice['status'] == 'Paid' ? 'badge-success' : ($invoice['status'] == 'Unpaid' ? 'badge-error' : 'badge-warning'); ?>">

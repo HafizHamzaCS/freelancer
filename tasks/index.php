@@ -20,6 +20,11 @@ if ($priority) $where .= " AND t.priority = '$priority'";
 if ($assigned_to) $where .= " AND t.assigned_to = $assigned_to";
 if ($project_id) $where .= " AND t.project_id = $project_id";
 
+if (!in_array($_SESSION['role'], ['admin', 'manager'])) {
+    $curr_user_id = $_SESSION['user_id'];
+    $where .= " AND (t.assigned_to = $curr_user_id OR t.project_id IN (SELECT project_id FROM project_members WHERE user_id = $curr_user_id))";
+}
+
 // Pagination
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
@@ -68,7 +73,7 @@ if (isset($_GET['ajax_filter'])) {
             
             echo '<tr class="hover">';
             echo '<td><input type="checkbox" value="'.$task['id'].'" class="checkbox checkbox-sm bulk-checkbox" /></td>';
-            echo '<td><div class="font-bold">'.htmlspecialchars($task['title']).'</div>';
+            echo '<td><div class="font-bold"><a href="view_task.php?id='.$task['id'].'" class="link link-hover">'.htmlspecialchars($task['title']).'</a></div>';
             if($task['description']) echo '<div class="text-xs opacity-50 truncate max-w-xs">'.htmlspecialchars($task['description']).'</div>';
             echo '</td>';
             echo '<td>';
@@ -175,7 +180,7 @@ if (isset($_GET['ajax_filter'])) {
                         <tr class="hover">
                             <td><input type="checkbox" value="<?php echo $task['id']; ?>" class="checkbox checkbox-sm bulk-checkbox" /></td>
                             <td>
-                                <div class="font-bold"><?php echo htmlspecialchars($task['title']); ?></div>
+                                <div class="font-bold"><a href="view_task.php?id=<?php echo $task['id']; ?>" class="link link-hover"><?php echo htmlspecialchars($task['title']); ?></a></div>
                                 <?php if($task['description']): ?>
                                     <div class="text-xs opacity-50 truncate max-w-xs"><?php echo htmlspecialchars($task['description']); ?></div>
                                 <?php endif; ?>

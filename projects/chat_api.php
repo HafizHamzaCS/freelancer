@@ -103,19 +103,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $enriched_messages = [];
     foreach ($messages as $msg) {
         $sender_name = 'Unknown';
+        $role = $_SESSION['role'];
+        $is_admin_manager = in_array($role, ['admin', 'manager']);
         
         if ($msg['sender_type'] == 'client') {
-            $client = db_fetch_one("SELECT name FROM clients WHERE id = " . $msg['user_id']);
-            $sender_name = $client ? $client['name'] : 'Client';
+            if ($is_admin_manager || (isset($_SESSION['is_client']) && $_SESSION['is_client'] && $msg['user_id'] == $_SESSION['user_id'])) {
+                $client = db_fetch_one("SELECT name FROM clients WHERE id = " . $msg['user_id']);
+                $sender_name = $client ? $client['name'] : 'Client';
+            } else {
+                $sender_name = 'Client';
+            }
         } else {
             // Admin or Member
-            $user = db_fetch_one("SELECT name FROM users WHERE id = " . $msg['user_id']);
-            $sender_name = $user ? $user['name'] : ucfirst($msg['sender_type']);
+            if ($is_admin_manager || $msg['user_id'] == $_SESSION['user_id'] || (isset($_SESSION['is_client']) && $_SESSION['is_client'] === false)) {
+                $user = db_fetch_one("SELECT name FROM users WHERE id = " . $msg['user_id']);
+                $sender_name = $user ? $user['name'] : ucfirst($msg['sender_type']);
+            } else {
+                $sender_name = 'Team Member';
+            }
         }
         
         $msg['sender_name'] = $sender_name;
         $msg['is_me'] = ($msg['sender_type'] == $sender_type && $msg['user_id'] == $sender_id);
-        $msg['formatted_time'] = date('H:i', strtotime($msg['created_at'])); // WhatsApp style time
+        $msg['formatted_time'] = date('H:i', strtotime($msg['created_at'])); 
         $enriched_messages[] = $msg;
     }
 
