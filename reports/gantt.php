@@ -7,6 +7,17 @@ require_role('admin');
 
 $page_title = "Gantt Timeline";
 require_once '../header.php';
+?>
+
+<!-- Report Tabs -->
+<div role="tablist" class="tabs tabs-lifted mb-8">
+    <a role="tab" class="tab" href="index.php">Overview</a>
+    <a role="tab" class="tab" href="productivity.php">Productivity</a>
+    <a role="tab" class="tab" href="project_performance.php">Performance</a>
+    <a role="tab" class="tab" href="time_tracking.php">Time Logs</a>
+    <a role="tab" class="tab tab-active">Gantt</a>
+</div>
+<?php
 
 // Fetch Active Projects
 $projects = db_fetch_all("SELECT * FROM projects WHERE status != 'Completed' ORDER BY start_date ASC");

@@ -175,7 +175,12 @@ require_once '../header.php';
         $active = ($source_filter == $src || ($source_filter == '' && $src == 'All')) ? 'tab-active bg-primary text-white' : '';
         $url = "project_list.php?source=" . ($src == 'All' ? '' : $src);
     ?>
-        <a href="<?php echo $url; ?>" class="tab <?php echo $active; ?> whitespace-nowrap flex-shrink-0"><?php echo $src; ?></a>
+        <a href="<?php echo $url; ?>" 
+           hx-get="<?php echo $url; ?>" 
+           hx-target="#main-content" 
+           hx-select="#main-content" 
+           hx-push-url="true"
+           class="tab <?php echo $active; ?> whitespace-nowrap flex-shrink-0"><?php echo $src; ?></a>
     <?php endforeach; ?>
 </div>
 <?php endif; ?>
@@ -183,10 +188,16 @@ require_once '../header.php';
 <div class="card bg-base-100 shadow-xl">
     <div class="card-body">
         <div class="form-control mb-4">
-            <form method="GET" class="flex gap-2">
+            <form method="GET" class="flex gap-2" hx-get="project_list.php" hx-target="#project-table-body" hx-select="#project-table-body" hx-trigger="submit, keyup delay:500ms from:input[name='search']">
+                <input type="hidden" name="ajax_search" value="1">
                 <input type="hidden" name="source" value="<?php echo htmlspecialchars($source_filter); ?>">
-                <input type="text" name="search" placeholder="Search projects..." class="input input-bordered w-full max-w-xs" value="<?php echo htmlspecialchars($search); ?>" />
-                <button class="btn btn-ghost">Search</button>
+                <div class="relative w-full max-w-xs">
+                    <input type="text" name="search" placeholder="Search projects..." class="input input-bordered w-full" value="<?php echo htmlspecialchars($search); ?>" />
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none htmx-indicator">
+                        <span class="loading loading-spinner loading-xs text-primary"></span>
+                    </div>
+                </div>
+                <button class="btn btn-primary">Search</button>
             </form>
         </div>
 
@@ -356,21 +367,6 @@ function openDeleteModal(projectId) {
     deleteBtn.href = 'project_delete.php?id=' + projectId;
     modal.showModal();
 }
-
-const searchInput = document.querySelector('input[name="search"]');
-const tableBody = document.getElementById('project-table-body');
-// Get current source from URL or hidden input
-const sourceFilter = document.querySelector('input[name="source"]').value;
-
-searchInput.addEventListener('input', function() {
-    const searchTerm = this.value;
-    // Include source filter in AJAX request
-    fetch(`project_list.php?ajax_search=1&search=${encodeURIComponent(searchTerm)}&source=${encodeURIComponent(sourceFilter)}`)
-        .then(response => response.text())
-        .then(html => {
-            tableBody.innerHTML = html;
-        });
-});
 </script>
 
 <!-- Bulk Action Bar -->

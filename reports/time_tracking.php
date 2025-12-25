@@ -7,6 +7,17 @@ require_role('admin');
 
 $page_title = "Time Tracking";
 require_once '../header.php';
+?>
+
+<!-- Report Tabs -->
+<div role="tablist" class="tabs tabs-lifted mb-8">
+    <a role="tab" class="tab" href="index.php">Overview</a>
+    <a role="tab" class="tab" href="productivity.php">Productivity</a>
+    <a role="tab" class="tab" href="project_performance.php">Performance</a>
+    <a role="tab" class="tab tab-active">Time Logs</a>
+    <a role="tab" class="tab" href="gantt.php">Gantt</a>
+</div>
+<?php
 
 // Fetch Time Entries
 // Assuming 'time_entries' table exists as per config schema

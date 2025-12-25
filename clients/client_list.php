@@ -101,9 +101,15 @@ require_once '../header.php';
 <div class="card bg-base-100 shadow-xl">
     <div class="card-body">
         <div class="form-control mb-4">
-            <form method="GET" class="flex gap-2">
-                <input type="text" name="search" placeholder="Search clients..." class="input input-bordered w-full max-w-xs" value="<?php echo htmlspecialchars($search); ?>" />
-                <button class="btn btn-ghost">Search</button>
+            <form method="GET" class="flex gap-2" hx-get="client_list.php" hx-target="#client-table-body" hx-select="#client-table-body" hx-trigger="keyup delay:500ms from:input[name='search'], submit">
+                <input type="hidden" name="ajax_search" value="1">
+                <div class="relative w-full max-w-xs">
+                    <input type="text" name="search" placeholder="Search clients..." class="input input-bordered w-full" value="<?php echo htmlspecialchars($search); ?>" />
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none htmx-indicator">
+                        <span class="loading loading-spinner loading-xs text-primary"></span>
+                    </div>
+                </div>
+                <button class="btn btn-primary">Search</button>
             </form>
         </div>
 
@@ -119,7 +125,7 @@ require_once '../header.php';
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="client-table-body">
                     <?php if (empty($clients)): ?>
                         <tr><td colspan="5" class="text-center text-base-content/60">No clients found.</td></tr>
                     <?php else: ?>
@@ -246,18 +252,6 @@ function openDeleteModal(clientId) {
     deleteBtn.href = 'client_delete.php?id=' + clientId;
     modal.showModal();
 }
-
-const searchInput = document.querySelector('input[name="search"]');
-const tableBody = document.querySelector('tbody');
-
-searchInput.addEventListener('input', function() {
-    const searchTerm = this.value;
-    fetch('client_list.php?ajax_search=1&search=' + encodeURIComponent(searchTerm))
-        .then(response => response.text())
-        .then(html => {
-            tableBody.innerHTML = html;
-        });
-});
 </script>
 
 <!-- Bulk Action Bar -->

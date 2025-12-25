@@ -79,15 +79,21 @@ require_once '../header.php';
 <div class="card bg-base-100 shadow-xl">
     <div class="card-body">
         <!-- Search & Filter -->
-        <form method="GET" class="flex flex-wrap gap-4 mb-4">
-            <input type="text" name="search" placeholder="Search invoice # or client..." class="input input-bordered w-full max-w-xs" value="<?php echo htmlspecialchars($search); ?>" />
-            <select name="status" class="select select-bordered" onchange="this.form.submit()">
+        <form method="GET" class="flex flex-wrap gap-4 mb-4" hx-get="invoice_list.php" hx-target="#invoice-table-body" hx-select="#invoice-table-body" hx-trigger="keyup delay:500ms from:input[name='search'], change from:select, submit">
+            <input type="hidden" name="ajax_search" value="1">
+            <div class="relative w-full max-w-xs">
+                <input type="text" name="search" placeholder="Search invoice # or client..." class="input input-bordered w-full" value="<?php echo htmlspecialchars($search); ?>" />
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none htmx-indicator">
+                    <span class="loading loading-spinner loading-xs text-primary"></span>
+                </div>
+            </div>
+            <select name="status" class="select select-bordered">
                 <option value="">All Statuses</option>
                 <option value="Unpaid" <?php echo $status_filter == 'Unpaid' ? 'selected' : ''; ?>>Unpaid</option>
                 <option value="Paid" <?php echo $status_filter == 'Paid' ? 'selected' : ''; ?>>Paid</option>
                 <option value="Overdue" <?php echo $status_filter == 'Overdue' ? 'selected' : ''; ?>>Overdue</option>
             </select>
-            <button class="btn btn-ghost">Filter</button>
+            <button class="btn btn-primary">Filter</button>
             <?php if ($search || $status_filter): ?>
                 <a href="invoice_list.php" class="btn btn-ghost">Clear</a>
             <?php endif; ?>
@@ -107,7 +113,7 @@ require_once '../header.php';
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="invoice-table-body">
                     <?php if (empty($invoices)): ?>
                         <tr><td colspan="7" class="text-center">No invoices found.</td></tr>
                     <?php else: ?>

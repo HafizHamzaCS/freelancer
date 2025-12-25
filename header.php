@@ -9,7 +9,7 @@ if ($current_page != 'login.php' && $current_page != 'logout.php') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="<?php echo $_SESSION['theme'] ?? 'light'; ?>">
+<html lang="en" data-theme="<?php echo $_SESSION['theme'] ?? 'light'; ?>" hx-boost="true" hx-target="#main-content" hx-select="#main-content">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -83,6 +83,34 @@ if ($current_page != 'login.php' && $current_page != 'logout.php') {
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        /* Global HTMX Progress Bar */
+        .htmx-indicator {
+            display: none;
+        }
+        .htmx-request .htmx-indicator {
+            display: block;
+        }
+        .htmx-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 3px;
+            background: #3b82f6;
+            z-index: 10000;
+            transition: width 0.3s ease-in-out;
+        }
+        .htmx-request .htmx-progress {
+            width: 100%;
+            animation: progress 2s infinite ease-in-out;
+        }
+        @keyframes progress {
+            0% { width: 0%; left: 0; }
+            50% { width: 70%; left: 15%; }
+            100% { width: 0%; left: 100%; }
+        }
+    </style>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -112,12 +140,46 @@ if ($current_page != 'login.php' && $current_page != 'logout.php') {
                 });
             });
 
-            flatpickr('input[type="date"]', {
-                dateFormat: "Y-m-d",
-                altInput: true,
-                altFormat: "F j, Y",
-                allowInput: true,
-                static: true
+            function initPlugins() {
+                flatpickr('input[type="date"]', {
+                    dateFormat: "Y-m-d",
+                    altInput: true,
+                    altFormat: "F j, Y",
+                    allowInput: true,
+                    static: true
+                });
+            }
+
+            // Initial call
+            initPlugins();
+
+            // HTMX: Update sidebar active state after page swap
+            document.addEventListener('htmx:afterSwap', function(evt) {
+                if (evt.detail.target.id === 'main-content') {
+                    // Update sidebar active classes
+                    const currentPath = window.location.pathname + window.location.search;
+                    const sidebarLinks = document.querySelectorAll('.drawer-side .menu a');
+                    
+                    sidebarLinks.forEach(link => {
+                        const linkUrl = new URL(link.href, window.location.origin);
+                        const linkPath = linkUrl.pathname + linkUrl.search;
+                        
+                        if (currentPath === linkPath || (currentPath.includes(linkUrl.pathname) && linkUrl.pathname !== '/' && linkUrl.pathname !== '<?php echo parse_url(APP_URL, PHP_URL_PATH); ?>/')) {
+                            link.classList.add('active');
+                            const details = link.closest('details');
+                            if (details) details.setAttribute('open', '');
+                        } else {
+                            link.classList.remove('active');
+                        }
+                    });
+
+                    // Re-initialize plugins
+                    initPlugins();
+                    
+                    // Close mobile drawer if open
+                    const drawerToggle = document.getElementById('my-drawer-2');
+                    if (drawerToggle) drawerToggle.checked = false;
+                }
             });
         });
     </script>
@@ -195,11 +257,13 @@ if ($current_page != 'login.php' && $current_page != 'logout.php') {
     <script src="<?php echo APP_URL; ?>/assets/bulk-actions.js"></script>
 </head>
 <body class="bg-base-200 min-h-screen font-sans">
+    <div class="htmx-progress htmx-indicator" id="global-progress"></div>
 
 <?php if (is_logged_in()): ?>
 <div class="drawer lg:drawer-open">
   <input id="my-drawer-2" type="checkbox" class="drawer-toggle" />
-  <div class="drawer-content flex flex-col">
+  <div class="drawer-content flex flex-col" id="main-content">
+    <div class="htmx-progress htmx-indicator"></div>
     <!-- Navbar -->
     <div class="w-full navbar bg-base-100 shadow-sm lg:hidden">
       <div class="flex-none lg:hidden">
@@ -219,7 +283,7 @@ if ($current_page != 'login.php' && $current_page != 'logout.php') {
             <div class="flex items-center gap-4">
                 <!-- Global Search -->
                 <div class="form-control mr-2">
-                    <form action="<?php echo APP_URL; ?>/search.php" method="GET">
+                    <form action="<?php echo APP_URL; ?>/search.php" method="GET" hx-target="#main-content" hx-select="#main-content" hx-push-url="true">
                         <input type="text" name="q" placeholder="Search..." class="input input-sm input-bordered w-24 md:w-auto" />
                     </form>
                 </div>
@@ -276,7 +340,7 @@ if ($current_page != 'login.php' && $current_page != 'logout.php') {
                 <li><a href="<?php echo APP_URL; ?>/reports/index.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'reports/') !== false ? 'active' : ''; ?>">Reports</a></li>
                         <li><a href="<?php echo APP_URL; ?>/settings.php">Settings</a></li>
                         <li><a href="<?php echo APP_URL; ?>/workflows/index.php">Workflows</a></li>
-                        <li><a href="<?php echo APP_URL; ?>/logout.php">Logout</a></li>
+                        <li><a href="<?php echo APP_URL; ?>/logout.php" hx-boost="false">Logout</a></li>
                     </ul>
                 </div>
             </div>

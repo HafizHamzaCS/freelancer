@@ -44,7 +44,53 @@ $total_pages = ceil($total_tasks / $limit);
 // Fetch Users & Projects for Filters
 $users = db_fetch_all("SELECT id, name FROM users ORDER BY name");
 $projects = db_fetch_all("SELECT id, name FROM projects WHERE status != 'Completed' ORDER BY name");
-?>
+
+// AJAX Search/Filter Handler
+if (isset($_GET['ajax_filter'])) {
+    if (empty($tasks)) {
+        echo '<tr><td colspan="8" class="text-center py-8 text-base-content/50">No tasks found.</td></tr>';
+    } else {
+        foreach ($tasks as $task) {
+            $priority_badge = match($task['priority']) {
+                'High' => 'badge-error',
+                'Medium' => 'badge-warning',
+                'Low' => 'badge-info',
+                default => 'badge-ghost'
+            };
+            $status_badge = match($task['status']) {
+                'Todo' => 'badge-ghost',
+                'In Progress' => 'badge-info',
+                'Done' => 'badge-success',
+                'Blocked' => 'badge-error',
+                'On Hold' => 'badge-warning',
+                default => 'badge-ghost'
+            };
+            
+            echo '<tr class="hover">';
+            echo '<td><input type="checkbox" value="'.$task['id'].'" class="checkbox checkbox-sm bulk-checkbox" /></td>';
+            echo '<td><div class="font-bold">'.htmlspecialchars($task['title']).'</div>';
+            if($task['description']) echo '<div class="text-xs opacity-50 truncate max-w-xs">'.htmlspecialchars($task['description']).'</div>';
+            echo '</td>';
+            echo '<td>';
+            if($task['project_name']) echo '<a href="../projects/project_view.php?id='.$task['project_id'].'" class="link link-hover text-sm">'.htmlspecialchars($task['project_name']).'</a>';
+            else echo '<span class="text-xs opacity-50">No Project</span>';
+            echo '</td>';
+            echo '<td>';
+            if($task['assigned_name']) {
+                echo '<div class="flex items-center gap-2"><div class="avatar placeholder"><div class="bg-neutral-focus text-neutral-content rounded-full w-6 h-6 text-xs"><span>'.substr($task['assigned_name'],0,1).'</span></div></div><div class="text-sm">'.htmlspecialchars($task['assigned_name']).'</div></div>';
+            } else echo '<span class="text-xs opacity-50">Unassigned</span>';
+            echo '</td>';
+            echo '<td><div class="badge badge-sm '.$priority_badge.'">'.$task['priority'].'</div></td>';
+            echo '<td><div class="badge badge-sm '.$status_badge.'">'.$task['status'].'</div></td>';
+            echo '<td class="text-sm">'.($task['due_date'] ? date('M d, Y', strtotime($task['due_date'])) : '-').'</td>';
+            echo '<td><div class="flex gap-1">';
+            echo '<a href="task_edit.php?id='.$task['id'].'" class="btn btn-ghost btn-xs btn-circle"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></a>';
+            echo '<button onclick="openDeleteModal('.$task['id'].')" class="btn btn-ghost btn-xs btn-circle text-error"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>';
+            echo '</div></td></tr>';
+        }
+    }
+    exit;
+}
 
 <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
     <h1 class="text-3xl font-bold text-base-content">Tasks</h1>
@@ -57,7 +103,8 @@ $projects = db_fetch_all("SELECT id, name FROM projects WHERE status != 'Complet
 <!-- Filters -->
 <div class="card bg-base-100 shadow-sm mb-6">
     <div class="card-body p-4">
-        <form method="GET" class="flex flex-wrap gap-4 items-end">
+        <form method="GET" class="flex flex-wrap gap-4 items-end" hx-get="index.php" hx-target="#task-table-body" hx-select="#task-table-body" hx-trigger="change from:select">
+            <input type="hidden" name="ajax_filter" value="1">
             <div class="form-control w-full sm:w-auto">
                 <label class="label"><span class="label-text">Status</span></label>
                 <select name="status" class="select select-bordered select-sm">
@@ -120,7 +167,7 @@ $projects = db_fetch_all("SELECT id, name FROM projects WHERE status != 'Complet
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="task-table-body">
                     <?php if (empty($tasks)): ?>
                         <tr><td colspan="7" class="text-center py-8 text-base-content/50">No tasks found.</td></tr>
                     <?php else: ?>

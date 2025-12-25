@@ -75,9 +75,15 @@ require_once '../header.php';
 <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
     <h1 class="text-3xl font-bold text-base-content">Users</h1>
     <div class="flex gap-2 w-full md:w-auto">
-        <form method="GET" class="flex gap-2 w-full md:w-auto">
-            <input type="text" name="search" placeholder="Search users..." class="input input-bordered w-full md:w-64" value="<?php echo htmlspecialchars($search); ?>" />
-            <button class="btn btn-ghost">Search</button>
+        <form method="GET" class="flex gap-2 w-full md:w-auto" hx-get="index.php" hx-target="#user-table-body" hx-select="#user-table-body" hx-trigger="keyup delay:500ms from:input[name='search'], submit">
+            <input type="hidden" name="ajax_search" value="1">
+            <div class="relative w-full md:w-64">
+                <input type="text" name="search" placeholder="Search users..." class="input input-bordered w-full" value="<?php echo htmlspecialchars($search); ?>" />
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none htmx-indicator">
+                    <span class="loading loading-spinner loading-xs text-primary"></span>
+                </div>
+            </div>
+            <button class="btn btn-primary">Search</button>
         </form>
         <a href="create.php" class="btn btn-primary">Add User</a>
     </div>

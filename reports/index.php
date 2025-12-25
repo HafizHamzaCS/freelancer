@@ -20,6 +20,15 @@ $active_clients = db_fetch_one("SELECT COUNT(*) as c FROM clients WHERE status='
     <p class="opacity-50">Insights into your agency's performance.</p>
 </div>
 
+<!-- Report Tabs -->
+<div role="tablist" class="tabs tabs-lifted mb-8">
+    <a role="tab" class="tab tab-active">Overview</a>
+    <a role="tab" class="tab" href="productivity.php">Productivity</a>
+    <a role="tab" class="tab" href="project_performance.php">Performance</a>
+    <a role="tab" class="tab" href="time_tracking.php">Time Logs</a>
+    <a role="tab" class="tab" href="gantt.php">Gantt</a>
+</div>
+
 <!-- Quick Stats Row -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
     <div class="stat bg-base-100 shadow-xl rounded-box">

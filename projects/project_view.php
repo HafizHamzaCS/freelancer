@@ -358,14 +358,15 @@ require_once '../header.php';
     <div class="lg:col-span-3">
         <div class="overflow-x-auto w-full pb-2"> <!-- Added overflow container -->
             <div role="tablist" class="tabs tabs-lifted tabs-lg mb-0 min-w-max"> <!-- Added min-w-max -->
-                <a role="tab" class="tab <?php echo $active_tab == 'overview' ? 'tab-active font-bold' : ''; ?>" onclick="window.location='?id=<?php echo $id; ?>&tab=overview'">Overview</a>
-                <a role="tab" class="tab <?php echo $active_tab == 'description' ? 'tab-active font-bold' : ''; ?>" onclick="window.location='?id=<?php echo $id; ?>&tab=description'">Description</a>
-
-                <a role="tab" class="tab <?php echo $active_tab == 'time' ? 'tab-active font-bold' : ''; ?>" onclick="window.location='?id=<?php echo $id; ?>&tab=time'">Time</a>
-                <a role="tab" class="tab <?php echo $active_tab == 'files' ? 'tab-active font-bold' : ''; ?>" onclick="window.location='?id=<?php echo $id; ?>&tab=files'">Files</a>
-                <a role="tab" class="tab <?php echo $active_tab == 'chat' ? 'tab-active font-bold' : ''; ?>" onclick="window.location='?id=<?php echo $id; ?>&tab=chat'">Chat</a>
-                <a role="tab" class="tab <?php echo $active_tab == 'comments' ? 'tab-active font-bold' : ''; ?>" onclick="window.location='?id=<?php echo $id; ?>&tab=comments'">Comments</a>
-                <a role="tab" class="tab <?php echo $active_tab == 'activity' ? 'tab-active font-bold' : ''; ?>" onclick="window.location='?id=<?php echo $id; ?>&tab=activity'">Activity</a>
+                <a role="tab" class="tab <?php echo $active_tab == 'overview' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=overview" hx-push-url="true">Overview</a>
+                <a role="tab" class="tab <?php echo $active_tab == 'description' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=description" hx-push-url="true">Description</a>
+                <a role="tab" class="tab <?php echo $active_tab == 'milestones' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=milestones" hx-push-url="true">Milestones</a>
+                <a role="tab" class="tab <?php echo $active_tab == 'reports' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=reports" hx-push-url="true">Reports</a>
+                <a role="tab" class="tab <?php echo $active_tab == 'time' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=time" hx-push-url="true">Time</a>
+                <a role="tab" class="tab <?php echo $active_tab == 'files' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=files" hx-push-url="true">Files</a>
+                <a role="tab" class="tab <?php echo $active_tab == 'chat' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=chat" hx-push-url="true">Chat</a>
+                <a role="tab" class="tab <?php echo $active_tab == 'comments' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=comments" hx-push-url="true">Comments</a>
+                <a role="tab" class="tab <?php echo $active_tab == 'activity' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=activity" hx-push-url="true">Activity</a>
             </div>
         </div>
 
@@ -1408,6 +1409,171 @@ require_once '../header.php';
                     });
                 }
                 </script>
+            <?php endif; ?>
+
+            <!-- Milestones Tab -->
+            <?php if ($active_tab == 'milestones'): ?>
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-bold text-lg">Project Milestones</h3>
+                    <button onclick="add_milestone_modal.showModal()" class="btn btn-sm btn-primary">Add Milestone</button>
+                </div>
+
+                <div class="space-y-4">
+                    <?php if (empty($milestones)): ?>
+                        <div class="text-center py-8 opacity-50 italic">No milestones set.</div>
+                    <?php else: ?>
+                        <?php foreach ($milestones as $m): ?>
+                            <div class="flex items-center justify-between p-4 bg-base-200 rounded-lg group">
+                                <div class="flex items-center gap-4">
+                                    <form method="POST">
+                                        <input type="hidden" name="toggle_milestone" value="<?php echo $m['id']; ?>">
+                                        <input type="checkbox" class="checkbox checkbox-primary" 
+                                               <?php echo $m['status'] == 'Completed' ? 'checked' : ''; ?> 
+                                               onchange="this.form.submit()">
+                                    </form>
+                                    <div>
+                                        <div class="font-bold <?php echo $m['status'] == 'Completed' ? 'line-through opacity-50' : ''; ?>">
+                                            <?php echo htmlspecialchars($m['title']); ?>
+                                        </div>
+                                        <div class="text-xs opacity-50">Due: <?php echo date('M d, Y', strtotime($m['due_date'])); ?></div>
+                                    </div>
+                                </div>
+                                <div class="badge <?php echo $m['status'] == 'Completed' ? 'badge-success' : 'badge-ghost'; ?>">
+                                    <?php echo $m['status']; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Add Milestone Modal -->
+                <dialog id="add_milestone_modal" class="modal">
+                    <div class="modal-box">
+                        <h3 class="font-bold text-lg mb-4">Add New Milestone</h3>
+                        <form method="POST" class="space-y-4">
+                            <div class="form-control">
+                                <label class="label"><span class="label-text">Milestone Title</span></label>
+                                <input type="text" name="title" class="input input-bordered" required>
+                            </div>
+                            <div class="form-control">
+                                <label class="label"><span class="label-text">Due Date</span></label>
+                                <input type="date" name="due_date" class="input input-bordered" required>
+                            </div>
+                            <div class="modal-action">
+                                <button type="button" onclick="add_milestone_modal.close()" class="btn">Cancel</button>
+                                <button type="submit" name="add_milestone" class="btn btn-primary">Save Milestone</button>
+                            </div>
+                        </form>
+                    </div>
+                </dialog>
+            <?php endif; ?>
+
+            <!-- Reports Tab -->
+            <?php if ($active_tab == 'reports'): ?>
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-bold text-lg">Project Reports & Analytics</h3>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Financial Summary -->
+                    <div class="card bg-base-200 border border-base-300">
+                        <div class="card-body">
+                            <h4 class="font-bold text-md mb-4 flex items-center gap-2 text-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                Financial Summary
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between border-b border-base-300 pb-2">
+                                    <span class="opacity-70">Total Budget (Gross)</span>
+                                    <span class="font-mono"><?php echo format_money($project['budget']); ?></span>
+                                </div>
+                                <?php 
+                                    $source = $project['source'] ?? 'Direct';
+                                    $tax_rate = get_tax_rate($source);
+                                    $tax_amount = $project['budget'] * $tax_rate;
+                                    $net_amount = calculate_project_net($project['budget'], $source);
+                                ?>
+                                <div class="flex justify-between border-b border-base-300 pb-2">
+                                    <span class="opacity-70">Platform Fee / Tax (<?php echo $tax_rate * 100; ?>%)</span>
+                                    <span class="font-mono text-error">-<?php echo format_money($tax_amount); ?></span>
+                                </div>
+                                <div class="flex justify-between font-bold pt-2">
+                                    <span>Net Potential Income</span>
+                                    <span class="font-mono text-success text-xl"><?php echo format_money($net_amount); ?></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Analytics -->
+                    <div class="card bg-base-200 border border-base-300">
+                        <div class="card-body">
+                            <h4 class="font-bold text-md mb-4 flex items-center gap-2 text-secondary">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                                Progress Analytics
+                            </h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span>Overall Progress</span>
+                                        <span class="font-bold"><?php echo $progress; ?>%</span>
+                                    </div>
+                                    <progress class="progress progress-primary w-full h-3" value="<?php echo $progress; ?>" max="100"></progress>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 mt-4">
+                                    <div class="bg-base-100 p-3 rounded-lg text-center">
+                                        <div class="text-xs opacity-50">Milestones</div>
+                                        <div class="text-lg font-bold"><?php echo $completed_milestones; ?>/<?php echo $total_milestones; ?></div>
+                                    </div>
+                                    <div class="bg-base-100 p-3 rounded-lg text-center">
+                                        <div class="text-xs opacity-50">Tasks Done</div>
+                                        <?php 
+                                            $done_tasks = count(array_filter($tasks, fn($t) => $t['status'] == 'Done'));
+                                            $total_t = count($tasks);
+                                        ?>
+                                        <div class="text-lg font-bold"><?php echo $done_tasks; ?>/<?php echo $total_t; ?></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Time Stats -->
+                    <div class="card bg-base-200 border border-base-300 md:col-span-2">
+                        <div class="card-body">
+                            <h4 class="font-bold text-md mb-4 flex items-center gap-2 text-accent">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                Time Investment Summary
+                            </h4>
+                            <?php 
+                                $total_seconds = 0;
+                                foreach($time_entries as $te) {
+                                    if($te['end_time']) {
+                                        $total_seconds += (strtotime($te['end_time']) - strtotime($te['start_time']));
+                                    }
+                                }
+                                $total_hrs = round($total_seconds / 3600, 1);
+                                $hourly_rate = $total_hrs > 0 ? round($net_amount / $total_hrs, 2) : 0;
+                            ?>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="stat p-4 bg-base-100 rounded-xl shadow-sm">
+                                    <div class="stat-title text-xs">Total Logged</div>
+                                    <div class="stat-value text-xl"><?php echo $total_hrs; ?> hrs</div>
+                                </div>
+                                <div class="stat p-4 bg-base-100 rounded-xl shadow-sm">
+                                    <div class="stat-title text-xs">Estimated Hourly Rate</div>
+                                    <div class="stat-value text-xl text-success"><?php echo format_money($hourly_rate); ?>/hr</div>
+                                </div>
+                                <div class="stat p-4 bg-base-100 rounded-xl shadow-sm">
+                                    <div class="stat-title text-xs">Efficiency Level</div>
+                                    <div class="stat-value text-xl <?php echo $hourly_rate > 30 ? 'text-primary' : 'text-warning'; ?>">
+                                        <?php echo $hourly_rate > 30 ? 'Premium' : ($hourly_rate > 0 ? 'Standard' : 'N/A'); ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             <?php endif; ?>
 
             <!-- Activity Tab -->

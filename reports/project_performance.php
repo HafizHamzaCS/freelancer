@@ -9,6 +9,17 @@ if (isset($_SESSION['is_client']) && $_SESSION['is_client']) {
 
 $page_title = "Project Performance";
 require_once '../header.php';
+?>
+
+<!-- Report Tabs -->
+<div role="tablist" class="tabs tabs-lifted mb-8">
+    <a role="tab" class="tab" href="index.php">Overview</a>
+    <a role="tab" class="tab" href="productivity.php">Productivity</a>
+    <a role="tab" class="tab tab-active">Performance</a>
+    <a role="tab" class="tab" href="time_tracking.php">Time Logs</a>
+    <a role="tab" class="tab" href="gantt.php">Gantt</a>
+</div>
+<?php
 
 // Fetch Projects with Task Stats
 $sql = "SELECT p.*, c.name as client_name,
