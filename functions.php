@@ -22,6 +22,41 @@ function check_auth() {
     }
     check_lockout();
     check_session_timeout();
+    check_daily_developer_alert();
+}
+
+function check_daily_developer_alert() {
+    global $conn;
+    
+    if (!is_logged_in()) return;
+    
+    $user_id = (int)$_SESSION['user_id'];
+    $role = $_SESSION['role'];
+    $user_name = $_SESSION['user_name'];
+
+    // Only for members/developers
+    if (!in_array($role, ['member', 'developer'])) {
+        return;
+    }
+
+    // Check if notification already exists for today (last 24h)
+    $title = "Daily Check-in";
+    $title_esc = escape($title);
+    
+    $check = db_fetch_one("SELECT id FROM notifications 
+                           WHERE user_id = $user_id 
+                           AND title = '$title_esc' 
+                           AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+    
+    if (!$check) {
+        $message = "Hi $user_name, what have you done today? Please update your task progress.";
+        $message_esc = escape($message);
+        $link = APP_URL . "/tasks/index.php";
+        $link_esc = escape($link);
+        
+        db_query("INSERT INTO notifications (user_id, title, message, link) 
+                  VALUES ($user_id, '$title_esc', '$message_esc', '$link_esc')");
+    }
 }
 
 function format_money($amount) {
