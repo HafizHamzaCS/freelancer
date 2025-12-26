@@ -341,17 +341,17 @@ require_once '../header.php';
     <div>
         <div class="flex items-center gap-2 mb-1">
             <h2 class="text-3xl font-bold"><?php echo e($project['name']); ?></h2>
+            <?php if (in_array($_SESSION['role'] ?? '', ['admin', 'manager'])): ?>
             <div class="badge <?php echo get_kanban_source_badge($project['source'] ?? 'Direct'); ?>">
                 <?php echo e($project['source'] ?? 'Direct'); ?>
             </div>
+            <?php endif; ?>
         </div>
         <div class="text-sm breadcrumbs text-base-content/70">
             <ul>
                 <li><a href="<?php echo APP_URL; ?>/projects/project_list.php">Projects</a></li>
                 <?php if (in_array($_SESSION['role'], ['admin', 'manager']) || (isset($_SESSION['is_client']) && $_SESSION['is_client'])): ?>
                 <li><?php echo htmlspecialchars($client['name']); ?></li>
-                <?php else: ?>
-                <li>Client</li>
                 <?php endif; ?>
             </ul>
         </div>
@@ -386,6 +386,7 @@ require_once '../header.php';
                         ?>"><?php echo $project['status']; ?></div>
                     </div>
 
+                    <?php if (in_array($_SESSION['role'] ?? '', ['admin', 'manager'])): ?>
                     <div>
                         <div class="text-xs text-base-content/70 mb-1">Budget</div>
                         <div class="font-bold text-lg"><?php echo format_money($project['budget']); ?></div>
@@ -397,6 +398,7 @@ require_once '../header.php';
                             <div class="text-xs text-success font-bold">Net: <?php echo format_money($net); ?></div>
                         <?php endif; ?>
                     </div>
+                    <?php endif; ?>
 
                     <div>
                         <div class="text-xs text-base-content/70 mb-1">Deadline</div>
@@ -425,7 +427,9 @@ require_once '../header.php';
                 <a role="tab" class="tab <?php echo $active_tab == 'overview' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=overview" hx-push-url="true">Overview</a>
                 <a role="tab" class="tab <?php echo $active_tab == 'description' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=description" hx-push-url="true">Description</a>
                 <a role="tab" class="tab <?php echo $active_tab == 'milestones' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=milestones" hx-push-url="true">Milestones</a>
+                <?php if (in_array($_SESSION['role'] ?? '', ['admin', 'manager'])): ?>
                 <a role="tab" class="tab <?php echo $active_tab == 'reports' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=reports" hx-push-url="true">Reports</a>
+                <?php endif; ?>
                 <a role="tab" class="tab <?php echo $active_tab == 'time' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=time" hx-push-url="true">Time</a>
                 <a role="tab" class="tab <?php echo $active_tab == 'files' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=files" hx-push-url="true">Files</a>
                 <a role="tab" class="tab <?php echo $active_tab == 'chat' ? 'tab-active font-bold' : ''; ?>" hx-get="?id=<?php echo $id; ?>&tab=chat" hx-push-url="true">Chat</a>

@@ -1,6 +1,9 @@
 <?php
 require_once '../config.php';
 require_once '../functions.php';
+require_once '../auth.php';
+
+require_role(['admin', 'manager', 'client']);
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $invoice = db_fetch_one("SELECT i.*, c.name as client_name, c.email as client_email, c.phone as client_phone, p.name as project_name 

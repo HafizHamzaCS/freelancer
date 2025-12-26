@@ -1,6 +1,9 @@
 <?php
 require_once '../config.php';
 require_once '../functions.php';
+require_once '../auth.php';
+
+require_role(['admin', 'manager']);
 
 $clients = db_fetch_all("SELECT * FROM clients WHERE status = 'Active'");
 $projects = db_fetch_all("SELECT * FROM projects WHERE status = 'In Progress'");

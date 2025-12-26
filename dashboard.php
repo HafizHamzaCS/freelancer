@@ -60,6 +60,20 @@ $upcoming_events = db_fetch_all($events_sql);
 // 6. Delayed Projects (Details)
 $overdue_details_sql = "SELECT p.*, c.name as client_name FROM projects p JOIN clients c ON p.client_id = c.id WHERE p.deadline < CURDATE() AND p.status != 'Completed' AND $user_context_filter ORDER BY p.deadline ASC";
 $overdue_details = db_fetch_all($overdue_details_sql);
+
+// 7. My Upcoming Tasks (For Members)
+$my_tasks = [];
+if ($_SESSION['role'] == 'member') {
+    $uid = $_SESSION['user_id'];
+    $my_tasks = db_fetch_all("SELECT t.*, p.name as project_name 
+                             FROM tasks t 
+                             JOIN projects p ON t.project_id = p.id 
+                             WHERE t.assigned_to = $uid 
+                             AND t.status != 'Done' 
+                             AND t.deleted_at IS NULL 
+                             AND t.due_date >= CURDATE()
+                             ORDER BY t.due_date ASC LIMIT 10");
+}
 ?>
 
 <!-- Hero Section -->
@@ -121,7 +135,8 @@ $overdue_details = db_fetch_all($overdue_details_sql);
             </div>
         </div>
 
-        <!-- Total Clients Card (4th) -->
+        <!-- Total Clients Card (4th) - Hidden for Members -->
+        <?php if (in_array($_SESSION['role'], ['admin', 'manager'])): ?>
         <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 group">
             <div class="card-body p-6">
                 <div class="flex justify-between items-start">
@@ -135,6 +150,7 @@ $overdue_details = db_fetch_all($overdue_details_sql);
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- Upcoming Events Card (5th) -->
         <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 group">
@@ -213,7 +229,9 @@ $overdue_details = db_fetch_all($overdue_details_sql);
                         ?>
                         <tr class="hover bg-base-100/50">
                             <td class="font-bold text-base-content"><?php echo e($p['name']); ?></td>
+                            <?php if (in_array($_SESSION['role'], ['admin', 'manager'])): ?>
                             <td class="text-base-content/80"><?php echo e($p['client_name']); ?></td>
+                            <?php endif; ?>
                             <td class="text-sm font-bold text-red-500"><?php echo $deadline->format('Y-m-d'); ?></td>
                             <td>
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-600 border border-red-200">
@@ -250,7 +268,9 @@ $overdue_details = db_fetch_all($overdue_details_sql);
                         <thead>
                             <tr>
                                 <th>Project</th>
+                                <?php if (in_array($_SESSION['role'], ['admin', 'manager'])): ?>
                                 <th>Client</th>
+                                <?php endif; ?>
                                 <th>Date Added</th>
                                 <th>Action</th>
                             </tr>
@@ -259,7 +279,9 @@ $overdue_details = db_fetch_all($overdue_details_sql);
                             <?php foreach ($queue_projects as $p): ?>
                             <tr class="hover">
                                 <td class="font-bold"><?php echo e($p['name']); ?></td>
+                                <?php if (in_array($_SESSION['role'], ['admin', 'manager'])): ?>
                                 <td><?php echo e($p['client_name']); ?></td>
+                                <?php endif; ?>
                                 <td class="text-sm opacity-70"><?php echo date('M d, Y', strtotime($p['created_at'])); ?></td>
                                 <td>
                                     <a href="projects/project_view.php?id=<?php echo $p['id']; ?>" class="btn btn-xs btn-primary">View</a>
@@ -282,7 +304,7 @@ $overdue_details = db_fetch_all($overdue_details_sql);
 
 
 // 3. Project Status
-$status_sql = "SELECT status, COUNT(*) as count FROM projects GROUP BY status";
+$status_sql = "SELECT p.status, COUNT(*) as count FROM projects p WHERE $user_context_filter GROUP BY p.status";
 $status_res = db_fetch_all($status_sql);
 $status_labels = [];
 $status_counts = [];
@@ -299,9 +321,49 @@ $urgent_clients = db_fetch_all($urgent_sql);
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
     
-    <!-- Left Column: Charts (2/3 width) -->
+    <!-- Left Column: Tasks & Charts (2/3 width) -->
     <div class="lg:col-span-2 space-y-8">
         
+        <?php if ($_SESSION['role'] == 'member' && !empty($my_tasks)): ?>
+        <!-- My Upcoming Tasks Section -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-lg flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                    My Upcoming Tasks
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="table w-full">
+                        <thead>
+                            <tr>
+                                <th>Task</th>
+                                <th>Project</th>
+                                <th>Due Date</th>
+                                <th class="text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($my_tasks as $t): 
+                                $due = new DateTime($t['due_date']);
+                                $is_late = $due < new DateTime('today');
+                            ?>
+                            <tr class="hover">
+                                <td class="font-medium"><?php echo e($t['title']); ?></td>
+                                <td class="text-sm opacity-70"><?php echo e($t['project_name']); ?></td>
+                                <td class="text-sm <?php echo $is_late ? 'text-error font-bold' : ''; ?>">
+                                    <?php echo $due->format('M d, Y'); ?>
+                                </td>
+                                <td class="text-right">
+                                    <a href="projects/project_view.php?id=<?php echo $t['project_id']; ?>&tab=overview" class="btn btn-xs btn-primary">Go to Task</a>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
 
             <!-- Project Status -->
             <div class="card bg-base-100 shadow-xl">
@@ -319,7 +381,8 @@ $urgent_clients = db_fetch_all($urgent_sql);
     <!-- Right Column: Urgent Actions & Promo (1/3 width) -->
     <div class="space-y-8">
         
-        <!-- Urgent Follow-up Section (Red Glass) -->
+        <!-- Urgent Follow-up Section (Red Glass) - Hidden for Members -->
+        <?php if (in_array($_SESSION['role'], ['admin', 'manager'])): ?>
         <div class="card bg-red-500/10 backdrop-blur-md border border-red-500/20 shadow-xl">
             <div class="card-body">
                 <h2 class="card-title text-red-600 flex items-center gap-2">
@@ -399,8 +462,8 @@ $urgent_clients = db_fetch_all($urgent_sql);
             </div>
         </div>
 
-        <!-- Promotion Banner (Preserved) -->
-        <?php if ($next_promo): ?>
+        <!-- Promotion Banner - Hidden for Members -->
+        <?php if ($next_promo && in_array($_SESSION['role'], ['admin', 'manager'])): ?>
         <div class="card bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-xl">
             <div class="card-body">
                 <h2 class="card-title">

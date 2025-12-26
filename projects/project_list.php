@@ -98,10 +98,14 @@ if (isset($_GET['ajax_search'])) {
                     <input type="checkbox" value="' . $project['id'] . '" class="checkbox checkbox-sm bulk-checkbox" />
                   </td>';
             echo '<td>
-                    <div class="font-bold"><a href="' . get_project_url($project) . '" class="link link-hover">' . htmlspecialchars($project['name']) . '</a></div>
-                    <div class="badge ' . $source_badge . ' badge-xs mt-1">' . htmlspecialchars($project['source'] ?? 'Direct') . '</div>
-                  </td>';
-            echo '<td><a href="../clients/client_view.php?id=' . $project['client_id'] . '" class="link link-hover">' . htmlspecialchars($project['client_name']) . '</a></td>';
+                    <div class="font-bold"><a href="' . get_project_url($project) . '" class="link link-hover">' . htmlspecialchars($project['name']) . '</a></div>';
+            if (in_array($_SESSION['role'] ?? '', ['admin', 'manager'])):
+                echo '<div class="badge ' . $source_badge . ' badge-xs mt-1">' . htmlspecialchars($project['source'] ?? 'Direct') . '</div>';
+            endif;
+            echo '</td>';
+            if (in_array($_SESSION['role'] ?? '', ['admin', 'manager'])):
+                echo '<td><a href="../clients/client_view.php?id=' . $project['client_id'] . '" class="link link-hover">' . htmlspecialchars($project['client_name']) . '</a></td>';
+            endif;
             echo '<td><div class="badge ' . $status_badge . '">' . $project['status'] . '</div></td>';
             echo '<td><span class="' . ($is_overdue ? 'text-error font-bold' : '') . '">' . $project['deadline'] . ($is_overdue ? ' <span class="tooltip" data-tip="Overdue!">⚠️</span>' : '') . '</span></td>';
             
@@ -170,8 +174,8 @@ require_once '../header.php';
     </div>
 </div>
 
-<!-- Filter Tabs -->
-<?php if (!isset($_SESSION['is_client']) || !$_SESSION['is_client']): ?>
+<!-- Filter Tabs - Hidden for Members -->
+<?php if (in_array($_SESSION['role'] ?? '', ['admin', 'manager'])): ?>
 <div class="tabs tabs-boxed bg-base-100 mb-6 p-2 shadow-sm overflow-x-auto flex-nowrap">
     <?php 
     $sources = ['All', 'Fiverr', 'Upwork', 'LinkedIn', 'WhatsApp', 'Direct'];
@@ -211,7 +215,9 @@ require_once '../header.php';
                     <tr>
                         <th><input type="checkbox" id="selectAll" class="checkbox checkbox-sm" /></th>
                         <th>Project Name</th>
+                        <?php if (in_array($_SESSION['role'] ?? '', ['admin', 'manager'])): ?>
                         <th>Client</th>
+                        <?php endif; ?>
                         <th>Status</th>
                         <th>Deadline</th>
                         <th>Team</th>
@@ -228,17 +234,20 @@ require_once '../header.php';
                                 <input type="checkbox" name="ids[]" value="<?php echo $project['id']; ?>" class="checkbox checkbox-sm bulk-checkbox" />
                             </td>
                             <td>
-                                <div class="font-bold"><a href="<?php echo get_project_url($project); ?>" class="link link-hover"><?php echo htmlspecialchars($project['name']); ?></a></div>
                                 <div class="font-bold"><a href="<?php echo get_project_url($project); ?>" class="link link-hover"><?php echo e($project['name']); ?></a></div>
+                                <?php if (in_array($_SESSION['role'] ?? '', ['admin', 'manager'])): ?>
                                 <div class="badge <?php echo get_source_badge_class($project['source'] ?? 'Direct'); ?> badge-xs mt-1">
                                     <?php echo htmlspecialchars($project['source'] ?? 'Direct'); ?>
                                 </div>
+                                <?php endif; ?>
                             </td>
+                            <?php if (in_array($_SESSION['role'] ?? '', ['admin', 'manager'])): ?>
                             <td>
                                 <a href="../clients/client_view.php?id=<?php echo $project['client_id']; ?>" class="link link-hover">
                                     <?php echo e($project['client_name']); ?>
                                 </a>
                             </td>
+                            <?php endif; ?>
                             <td>
                                 <div class="badge <?php 
                                     echo match($project['status']) {

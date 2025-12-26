@@ -1,6 +1,9 @@
 <?php
 require_once '../config.php';
 require_once '../functions.php';
+require_once '../auth.php';
+
+require_role(['admin', 'manager', 'client']);
 
 $search = isset($_GET['search']) ? escape($_GET['search']) : '';
 $status_filter = isset($_GET['status']) ? escape($_GET['status']) : '';
