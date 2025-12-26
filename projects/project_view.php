@@ -459,8 +459,15 @@ require_once '../header.php';
             
             <!-- Overview Tab -->
             <?php if ($active_tab == 'overview'): ?>
-                <div class="prose max-w-none mb-8">
-                    <h3>Quick Tasks</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg">Quick Tasks</h3>
+                    <?php if (get_setting('ai_enabled') && in_array($_SESSION['role'], ['admin', 'manager'])): ?>
+                        <button @click="$dispatch('open-ai-suggest-modal')" 
+                                class="btn btn-xs btn-outline btn-primary gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                            AI Suggest Tasks
+                        </button>
+                    <?php endif; ?>
                 </div>
                 
                 <div class="space-y-4 mb-6">
@@ -1693,5 +1700,120 @@ require_once '../header.php';
         </div>
     </div>
 </div>
+
+
+<!-- AI Suggest Tasks Modal -->
+<?php if (get_setting('ai_enabled')): ?>
+<div x-data="aiSuggestions(<?php echo $id; ?>)" 
+     @open-ai-suggest-modal.window="openModal()"
+     x-show="show" 
+     class="modal modal-open" 
+     style="display: none;"
+     x-cloak>
+    <div class="modal-box max-w-2xl bg-base-100 rounded-3xl border border-primary/20 shadow-2xl">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="font-bold text-2xl flex items-center gap-2">
+                <div class="p-2 bg-primary/10 rounded-xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                </div>
+                AI Task Breakdown
+            </h3>
+            <button @click="show = false" class="btn btn-sm btn-circle btn-ghost">✕</button>
+        </div>
+
+        <div x-show="loading" class="flex flex-col items-center justify-center py-12 animate-pulse">
+            <span class="loading loading-spinner loading-lg text-primary mb-4"></span>
+            <p class="text-sm font-medium opacity-60 italic">Boss is analyzing project requirements...</p>
+        </div>
+
+        <div x-show="!loading" class="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+            <template x-for="(task, index) in suggestions" :key="index">
+                <div class="p-4 bg-base-200 rounded-2xl flex items-center justify-between group hover:bg-primary/5 transition-all">
+                    <div class="flex-1 mr-4">
+                        <div class="font-bold text-sm" x-text="task.title"></div>
+                        <div class="text-xs opacity-60 mt-1" x-text="task.description"></div>
+                        <div class="badge badge-xs mt-2" :class="task.priority === 'High' ? 'badge-error' : 'badge-ghost'" x-text="task.priority"></div>
+                    </div>
+                    <input type="checkbox" x-model="task.selected" class="checkbox checkbox-primary" />
+                </div>
+            </template>
+        </div>
+
+        <div class="modal-action flex justify-between items-center mt-8">
+            <div class="text-xs opacity-50 italic">AI suggested 3-5 technical goals.</div>
+            <div class="flex gap-2">
+                <button @click="show = false" class="btn btn-ghost">Cancel</button>
+                <button @click="applySuggestions()" 
+                        :disabled="suggestions.length === 0 || applying"
+                        class="btn btn-primary">
+                    <span x-show="applying" class="loading loading-spinner loading-xs mr-2"></span>
+                    Apply & Create Tasks
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function aiSuggestions(projectId) {
+    return {
+        show: false,
+        loading: false,
+        applying: false,
+        suggestions: [],
+
+        openModal() {
+            this.show = true;
+            this.fetchSuggestions();
+        },
+
+        fetchSuggestions() {
+            this.loading = true;
+            this.suggestions = [];
+            
+            fetch('<?php echo APP_URL; ?>/ai/chat_api.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    command: "Analyze the project ID " + projectId + ". Suggest 4 technical tasks. Return ONLY a JSON array of objects with keys: title, description, priority." 
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                this.loading = false;
+                if (data.success && data.response.data) {
+                    this.suggestions = data.response.data.map(t => ({...t, selected: true}));
+                } else if (data.success && Array.isArray(data.response)) {
+                    this.suggestions = data.response.map(t => ({...t, selected: true}));
+                } else {
+                    console.error('AI Suggestion raw:', data);
+                    alert('AI could not parse requirements. Try adding more detail to project description.');
+                }
+            });
+        },
+
+        async applySuggestions() {
+            this.applying = true;
+            const selected = this.suggestions.filter(s => s.selected);
+            
+            for (const task of selected) {
+                await fetch('<?php echo APP_URL; ?>/ai/execute_action.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        action: 'create_task', 
+                        data: { project_id: projectId, title: task.title, description: task.description, priority: task.priority } 
+                    })
+                });
+            }
+            
+            this.applying = false;
+            this.show = false;
+            window.location.reload();
+        }
+    }
+}
+</script>
+<?php endif; ?>
 
 <?php require_once '../footer.php'; ?>

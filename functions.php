@@ -53,7 +53,19 @@ function check_daily_developer_alert() {
                            AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)");
     
     if (!$check) {
+        // AI-Enhanced Message
         $message = "Hi $user_name, what have you done today? Please update your task progress.";
+        
+        if (get_setting('ai_enabled')) {
+            $recent_tasks = db_fetch_all("SELECT title FROM tasks WHERE assigned_to = $user_id AND status != 'Done' LIMIT 3");
+            $task_list = implode(', ', array_column($recent_tasks, 'title'));
+            $ai_prompt = "Generate a short, friendly daily check-in message for developer $user_name. They are working on tasks: [$task_list]. Ask for progress naturally.";
+            $ai_result = AI_Service::call($ai_prompt, 'AutomatedCheckIn');
+            if ($ai_result['success']) {
+                $message = $ai_result['content'];
+            }
+        }
+
         $message_esc = escape($message);
         $link = APP_URL . "/tasks/index.php";
         $link_esc = escape($link);
@@ -134,16 +146,74 @@ function send_email($to, $subject, $body, $client_id = 0) {
     return true;
 }
 
-function ai_suggest($prompt) {
-    $api_key = get_setting('ai_api_key');
-    $model = get_setting('ai_model', 'none');
-    
-    if (!$api_key || $model == 'none') {
-        return "AI not configured.";
+class AI_Service {
+    private static $context_path = __DIR__ . '/ai/ai_context.toon';
+    private static $memory_path = __DIR__ . '/ai/ai_memory.toon';
+
+    public static function call($prompt, $action_type = 'General', $force_premium = false) {
+        $enabled = get_setting('ai_enabled', '0');
+        $api_key = get_setting('ai_api_key');
+        if (!$enabled || !$api_key) return ["success" => false, "error" => "AI not enabled or configured."];
+
+        $model = $force_premium ? 'gpt-4o' : get_setting('ai_model', 'gpt-4o-mini');
+        $context = file_exists(self::$context_path) ? file_get_contents(self::$context_path) : "";
+        $memory = file_exists(self::$memory_path) ? file_get_contents(self::$memory_path) : "";
+
+        $full_prompt = "--- APPLICATION CONTEXT (TOON) ---\n$context\n\n--- RECURSIVE MEMORY ---\n$memory\n\n--- USER COMMAND ---\n$prompt";
+
+        $ch = curl_init('https://api.openai.com/v1/chat/completions');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+            'model' => $model,
+            'messages' => [['role' => 'user', 'content' => $full_prompt]],
+            'temperature' => 0.7
+        ]));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $api_key
+        ]);
+
+        $response = curl_exec($ch);
+        if (curl_errno($ch)) return ["success" => false, "error" => curl_error($ch)];
+        curl_close($ch);
+
+        $result = json_decode($response, true);
+        if (isset($result['error'])) return ["success" => false, "error" => $result['error']['message']];
+
+        // Log usage
+        self::log_usage($result, $model, $action_type);
+
+        return [
+            "success" => true,
+            "content" => $result['choices'][0]['message']['content'],
+            "usage" => $result['usage']
+        ];
     }
 
-    // Mock response for now to avoid blocking on actual API calls without a key
-    return "AI Suggestion for: " . substr($prompt, 0, 20) . "... (Configure API Key to enable real AI)";
+    private static function log_usage($result, $model, $action_type) {
+        global $conn;
+        $user_id = (int)($_SESSION['user_id'] ?? 0);
+        $prompt_tokens = (int)$result['usage']['prompt_tokens'];
+        $completion_tokens = (int)$result['usage']['completion_tokens'];
+        $total_tokens = (int)$result['usage']['total_tokens'];
+        $model_esc = escape($model);
+        $action_esc = escape($action_type);
+
+        db_query("INSERT INTO ai_usage (user_id, model, prompt_tokens, completion_tokens, total_tokens, action_type) 
+                  VALUES ($user_id, '$model_esc', $prompt_tokens, $completion_tokens, $total_tokens, '$action_esc')");
+    }
+
+    public static function learn($context, $error, $resolution) {
+        $memory = file_get_contents(self::$memory_path);
+        $entry = "\n# " . date('Y-m-d') . " | $context | $error | $resolution";
+        file_put_contents(self::$memory_path, $memory . $entry);
+    }
+}
+
+function ai_suggest($prompt) {
+    $result = AI_Service::call($prompt, 'Suggestion');
+    return $result['success'] ? $result['content'] : $result['error'];
 }
 function generate_slug($string) {
     $slug = strtolower(trim($string));

@@ -190,26 +190,63 @@ function val($key, $default = '') {
                 <!-- AI Tab -->
                 <div x-show="tab === 'ai'" class="card bg-base-100 shadow-xl" x-cloak>
                     <div class="card-body">
-                        <h3 class="card-title mb-4">AI Settings</h3>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="card-title">AI Settings</h3>
+                            <?php 
+                                $usage = db_fetch_one("SELECT SUM(total_tokens) as total FROM ai_usage");
+                                $token_count = $usage['total'] ?? 0;
+                            ?>
+                            <div class="badge badge-ghost gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                <?php echo number_format($token_count); ?> Tokens Used
+                            </div>
+                        </div>
+
                         <div class="form-control w-full">
                             <label class="label cursor-pointer">
-                                <span class="label-text">Enable AI Features</span> 
+                                <span class="label-text font-bold">Enable AI Boss Features</span> 
                                 <input type="checkbox" name="setting_ai_enabled" value="1" class="toggle toggle-primary" <?php echo val('ai_enabled') ? 'checked' : ''; ?> />
                             </label>
+                            <span class="text-xs text-base-content/60">Activates the smart manager, automated notifications, and chat boss.</span>
                         </div>
-                        <div class="form-control w-full mt-4">
-                            <label class="label"><span class="label-text">AI Model</span></label>
-                            <select name="setting_ai_model" class="select select-bordered">
-                                <option value="none">None</option>
-                                <option value="gpt-4o" <?php echo val('ai_model') == 'gpt-4o' ? 'selected' : ''; ?>>GPT-4o</option>
-                                <option value="gpt-4o-mini" <?php echo val('ai_model') == 'gpt-4o-mini' ? 'selected' : ''; ?>>GPT-4o-mini</option>
-                                <option value="claude" <?php echo val('ai_model') == 'claude' ? 'selected' : ''; ?>>Claude 3.5 Sonnet</option>
-                                <option value="grok" <?php echo val('ai_model') == 'grok' ? 'selected' : ''; ?>>Grok Beta</option>
-                            </select>
+
+                        <div class="divider">Configuration</div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-control w-full">
+                                <label class="label"><span class="label-text">Primary Model (Cheap)</span></label>
+                                <select name="setting_ai_model" class="select select-bordered select-sm">
+                                    <option value="gpt-4o-mini" <?php echo val('ai_model', 'gpt-4o-mini') == 'gpt-4o-mini' ? 'selected' : ''; ?>>GPT-4o Mini (Recommended)</option>
+                                    <option value="gpt-3.5-turbo" <?php echo val('ai_model') == 'gpt-3.5-turbo' ? 'selected' : ''; ?>>GPT-3.5 Turbo</option>
+                                </select>
+                            </div>
+                            <div class="form-control w-full">
+                                <label class="label"><span class="label-text">Advanced Model (Smart)</span></label>
+                                <select name="setting_ai_model_advanced" class="select select-bordered select-sm">
+                                    <option value="gpt-4o" <?php echo val('ai_model_advanced', 'gpt-4o') == 'gpt-4o' ? 'selected' : ''; ?>>GPT-4o</option>
+                                    <option value="gpt-4-turbo" <?php echo val('ai_model_advanced') == 'gpt-4-turbo' ? 'selected' : ''; ?>>GPT-4 Turbo</option>
+                                </select>
+                            </div>
                         </div>
+
                         <div class="form-control w-full mt-4">
-                            <label class="label"><span class="label-text">API Key</span></label>
+                            <label class="label"><span class="label-text">OpenAI API Key</span></label>
                             <input type="password" name="setting_ai_api_key" value="<?php echo val('ai_api_key'); ?>" class="input input-bordered w-full" placeholder="sk-..." />
+                        </div>
+
+                        <div class="divider">Management Rules</div>
+                        
+                        <div class="form-control w-full">
+                            <label class="label cursor-pointer">
+                                <span class="label-text">Enable Workload Balancing</span> 
+                                <input type="checkbox" name="setting_ai_workload_enabled" value="1" class="checkbox checkbox-primary" <?php echo val('ai_workload_enabled', '1') ? 'checked' : ''; ?> />
+                            </label>
+                        </div>
+                        <div class="form-control w-full">
+                            <label class="label cursor-pointer">
+                                <span class="label-text">Enable Sentiment Analysis</span> 
+                                <input type="checkbox" name="setting_ai_sentiment_enabled" value="1" class="checkbox checkbox-primary" <?php echo val('ai_sentiment_enabled', '1') ? 'checked' : ''; ?> />
+                            </label>
                         </div>
                     </div>
                 </div>

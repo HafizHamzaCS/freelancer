@@ -1,0 +1,17 @@
+[Freelancer CRM AI Memory]
+Description: This file stores learned preferences and administrative feedback.
+LastUpdated: 2025-12-26
+
+[Learned Preferences]
+- DevAvailability: Defaulting to 100% unless specified.
+- AssignmentBias: None yet.
+
+[Admin Corrections Loop]
+# Format: Date | Context | Error | Resolution
+# 2025-12-26 | Setup | Initial | Initializing memory system.
+
+[Lessons Learned]
+- SystemNote: Use TOON for efficiency as requested by Admin.
+
+[Recurring Bottlenecks]
+# List persistent issues the AI should flag globally.

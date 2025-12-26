@@ -31,6 +31,28 @@ switch ($action) {
         
         $sql = "INSERT INTO task_chat_messages (task_id, user_id, message) VALUES ($task_id, {$_SESSION['user_id']}, '$message')";
         if (db_query($sql)) {
+            // Feature: AI Sentiment Analysis & Blocker Detection
+            if (get_setting('ai_enabled') && get_setting('ai_sentiment_enabled', '1')) {
+                $user_name = get_user_name();
+                $task_title = db_fetch_one("SELECT title FROM tasks WHERE id = $task_id")['title'] ?? 'Task';
+                
+                $ai_prompt = "Analyze this developer message from $user_name on task '$task_title': \"$message\". 
+                             If the message indicates a 'blocker', 'frustration', or 'delay', return a JSON object with 'is_alert': true and 'reason': 'short explanation'. 
+                             Otherwise return 'is_alert': false.";
+                
+                $ai_result = AI_Service::call($ai_prompt, 'SentimentAnalysis');
+                if ($ai_result['success']) {
+                    $res = json_decode(preg_replace('/```json\n?|\n?```/', '', $ai_result['content']), true);
+                    if ($res && !empty($res['is_alert'])) {
+                        $reason = escape($res['reason']);
+                        $admin = db_fetch_one("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
+                        if ($admin) {
+                            $alert_msg = "🚨 Blocker Detected by AI: $user_name is $reason on task #$task_id ($task_title).";
+                            db_query("INSERT INTO notifications (user_id, title, message) VALUES ({$admin['id']}, 'AI Manager Alert', '$alert_msg')");
+                        }
+                    }
+                }
+            }
             echo json_encode(['success' => true]);
         }
         break;

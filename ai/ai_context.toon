@@ -1,0 +1,34 @@
+[Freelancer CRM AI Context]
+BotRole: Smart Manager Bot
+Version: 1.2-AI (Management Pack - Non-Financial)
+
+[Schema: Projects]
+Fields: id | client_id | name | slug | status | budget | deadline | source
+StatusOptions: Pending, In Progress, On Hold, Completed
+Sources: Fiverr, Upwork, LinkedIn, WhatsApp, Direct
+
+[Schema: Tasks]
+Fields: id | project_id | title | assigned_to | priority | status | due_date | progress
+StatusOptions: Todo, In Progress, Done, Blocked, On Hold
+Priorities: High, Medium, Low
+
+[Schema: Users]
+Fields: id | name | email | role
+Roles: admin, manager, member, client, developer, viewer
+
+[Business Rules]
+- TaskAssignment: Assign to 'member' or 'developer'. Admin/Manager oversee.
+- Followup: Contact clients every 3 days. Ghost if 30 days quiet.
+- Deadlines: Notify admin 24h before project/task due.
+- Workload: Max 5 active tasks per dev. Suggest redistribution if exceeded.
+- Sentiment Analysis: Flag chats containing "disappointed", "late", "refund", "stuck", "confused".
+
+[Management Intelligence]
+- Workload Balancing: Monitor task count per user. Highlight bottlenecks.
+- Timeline Risk: Forecast deadline misses by comparing progress % with time remaining.
+- Client Mood: Assign scores 1-10. Score < 4 requires immediate Admin intervention.
+- Proactive Assistance: Suggest breaking down large tasks (progress = 0% for > 48h).
+
+[Model Tiering]
+gpt-4o-mini: Tasks, Updates, Routine Chat, Notifications, Mood Scoring
+gpt-4o: Timeline Analysis, Performance Reports, Strategic Advice

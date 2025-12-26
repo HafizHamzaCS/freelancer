@@ -104,6 +104,172 @@
   </div>
 </div>
 <?php endif; ?>
+
+<!-- AI Boss Chat Interface -->
+<?php if (is_logged_in() && in_array($_SESSION['role'] ?? '', ['admin', 'manager'])): ?>
+<div x-data="aiBossChat()" 
+     class="fixed bottom-6 right-6 z-[100]"
+     @keydown.escape="open = false">
+    <!-- Chat Toggle Button -->
+    <button @click="open = !open" 
+            class="btn btn-primary btn-circle btn-lg shadow-2xl hover:scale-110 transition-transform duration-300">
+        <svg x-show="!open" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+        <svg x-show="open" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+    </button>
+
+    <!-- Chat Window -->
+    <div x-show="open" 
+         x-cloak
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-10 scale-95"
+         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+         class="absolute bottom-20 right-0 w-80 md:w-96 bg-base-100 shadow-2xl rounded-3xl overflow-hidden border border-primary/20 flex flex-col h-[500px]">
+        
+        <!-- Header -->
+        <div class="bg-primary text-primary-content p-4 flex items-center justify-between">
+            <div class="flex items-center gap-2 font-bold">
+                <div class="p-1 bg-white/20 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 21h6l-.75-4M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                </div>
+                Smart AI Boss
+            </div>
+            <span class="badge badge-sm badge-ghost opacity-70">v1.2 Beta</span>
+        </div>
+
+        <!-- Messages Area -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-base-200/30" id="chat-scroller">
+            <template x-for="msg in messages" :key="msg.id">
+                <div :class="msg.role === 'user' ? 'chat chat-end' : 'chat chat-start'" class="animate-fade-in">
+                    <div :class="msg.role === 'user' ? 'chat-bubble chat-bubble-primary' : 'chat-bubble chat-bubble-base-100 shadow-sm'" 
+                         class="text-sm">
+                        <span x-text="msg.content"></span>
+                    </div>
+                </div>
+            </template>
+            <div x-show="loading" class="chat chat-start animate-pulse">
+                <div class="chat-bubble bg-base-100 shadow-sm text-sm italic">Thinking...</div>
+            </div>
+        </div>
+
+        <!-- Suggested Action Panel -->
+        <div x-show="suggestedAction" 
+             x-cloak
+             class="p-4 bg-info/10 border-t border-info/20 animate-slide-up">
+            <div class="text-xs font-bold text-info mb-2 uppercase tracking-widest">AI Suggestion</div>
+            <div class="p-3 bg-base-100 rounded-xl border border-info/30 shadow-sm">
+                <p class="text-xs font-bold" x-text="suggestedAction.reply"></p>
+                <div class="mt-3 flex gap-2">
+                    <button @click="executeAction()" class="btn btn-xs btn-primary flex-1">Confirm & Run</button>
+                    <button @click="suggestedAction = null" class="btn btn-xs btn-ghost">Dismiss</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 bg-base-100 border-t border-base-200">
+            <div class="flex gap-2">
+                <input type="text" 
+                       x-model="input" 
+                       @keydown.enter="send()"
+                       placeholder="Tell the boss what to do..." 
+                       class="input input-bordered input-sm flex-1 focus:input-primary rounded-xl" />
+                <button @click="send()" 
+                        :disabled="loading || !input.trim()"
+                        class="btn btn-primary btn-sm btn-circle">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function aiBossChat() {
+    return {
+        open: false,
+        input: '',
+        loading: false,
+        messages: [
+            { id: 1, role: 'ai', content: 'Hi Boss! How can I help you manage the CRM today?' }
+        ],
+        suggestedAction: null,
+
+        send() {
+            if (!this.input.trim() || this.loading) return;
+            
+            const userMsg = { id: Date.now(), role: 'user', content: this.input };
+            this.messages.push(userMsg);
+            const userCommand = this.input;
+            this.input = '';
+            this.loading = true;
+            this.scroll();
+
+            fetch('<?php echo APP_URL; ?>/ai/chat_api.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: json_encode({ command: userCommand })
+            })
+            .then(res => res.json())
+            .then(data => {
+                this.loading = false;
+                if (data.success) {
+                    const aiReply = data.response.reply;
+                    this.messages.push({ id: Date.now(), role: 'ai', content: aiReply });
+                    
+                    if (data.response.action) {
+                        this.suggestedAction = data.response;
+                    }
+                } else {
+                    this.messages.push({ id: Date.now(), role: 'ai', content: 'Error: ' + data.error });
+                }
+                this.scroll();
+            })
+            .catch(err => {
+                this.loading = false;
+                this.messages.push({ id: Date.now(), role: 'ai', content: 'Technical error connecting to AI.' });
+                this.scroll();
+            });
+        },
+
+        executeAction() {
+            if (!this.suggestedAction) return;
+            const action = this.suggestedAction.action;
+            const data = this.suggestedAction.data;
+
+            this.loading = true;
+            fetch('<?php echo APP_URL; ?>/ai/execute_action.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, data })
+            })
+            .then(res => res.json())
+            .then(resData => {
+                this.loading = false;
+                if (resData.success) {
+                    this.messages.push({ id: Date.now(), role: 'ai', content: '✅ ' + resData.message });
+                    this.suggestedAction = null;
+                } else {
+                    this.messages.push({ id: Date.now(), role: 'ai', content: '❌ Action failed: ' + resData.error });
+                }
+                this.scroll();
+            })
+            .catch(err => {
+                this.loading = false;
+                this.messages.push({ id: Date.now(), role: 'ai', content: 'Technical error executing action.' });
+                this.scroll();
+            });
+        },
+
+        scroll() {
+            setTimeout(() => {
+                const scroller = document.getElementById('chat-scroller');
+                if (scroller) scroller.scrollTop = scroller.scrollHeight;
+            }, 50);
+        }
+    }
+}
+</script>
+<?php endif; ?>
     <script>
         document.body.addEventListener('htmx:configRequest', (event) => {
             event.detail.headers['X-CSRF-TOKEN'] = '<?php echo $_SESSION['csrf_token'] ?? ''; ?>';
