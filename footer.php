@@ -102,5 +102,10 @@
   </div>
 </div>
 <?php endif; ?>
+    <script>
+        document.body.addEventListener('htmx:configRequest', (event) => {
+            event.detail.headers['X-CSRF-TOKEN'] = '<?php echo $_SESSION['csrf_token'] ?? ''; ?>';
+        });
+    </script>
 </body>
 </html>

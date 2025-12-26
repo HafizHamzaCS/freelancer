@@ -246,6 +246,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } else {
             set_flash('error', 'Invalid file type or dangerous content.');
         }
+
+        if (!empty($_SERVER['HTTP_HX_REQUEST'])) {
+            $project_files = db_fetch_all("SELECT * FROM project_files WHERE project_id = $id ORDER BY uploaded_at DESC");
+            include 'files_partial.php';
+            exit;
+        }
+        $tab_redirect = 'files';
+    }
+
+    // Delete Project File
+    if (isset($_POST['delete_project_file'])) {
+        $file_id = (int)$_POST['delete_project_file'];
+        $file = db_fetch_one("SELECT * FROM project_files WHERE id = $file_id AND project_id = $id");
+        if ($file) {
+            if (file_exists($file['filepath'])) {
+                @unlink($file['filepath']);
+            }
+            db_query("DELETE FROM project_files WHERE id = $file_id");
+            log_system_activity('File Delete', "Deleted project file #$file_id from project #$id");
+        }
+        
+        if (!empty($_SERVER['HTTP_HX_REQUEST'])) {
+            $project_files = db_fetch_all("SELECT * FROM project_files WHERE project_id = $id ORDER BY uploaded_at DESC");
+            include 'files_partial.php';
+            exit;
+        }
         $tab_redirect = 'files';
     }
     // Time Tracking (Start/Stop Mock)
@@ -535,7 +561,8 @@ require_once '../header.php';
                                     <div x-show="tab === 'files'" class="animate-fade-in-up">
                                         <div class="flex justify-between items-center mb-4">
                                             <h4 class="font-bold text-sm">Attached Files</h4>
-                                            <div class="flex gap-2">
+                                            <div class="flex gap-2 items-center">
+                                                <span x-show="loadingFiles" class="loading loading-spinner loading-xs text-primary"></span>
                                                 <label class="btn btn-xs btn-primary gap-2">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                                                     Upload
@@ -578,7 +605,10 @@ require_once '../header.php';
                                     <div x-show="tab === 'chat'" class="animate-fade-in-up">
                                         <div class="flex flex-col h-[300px]">
                                             <div class="flex-1 overflow-y-auto space-y-4 p-2 mb-4" x-ref="chatBox">
-                                                <div x-show="messages.length === 0" class="h-full flex flex-col items-center justify-center text-base-content/30">
+                                                <div x-show="loadingChat && messages.length === 0" class="h-full flex flex-col items-center justify-center">
+                                                    <span class="loading loading-spinner loading-lg text-primary"></span>
+                                                </div>
+                                                <div x-show="!loadingChat && messages.length === 0" class="h-full flex flex-col items-center justify-center text-base-content/30">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                                                     <span>No messages yet. Start the discussion!</span>
                                                 </div>
@@ -608,7 +638,10 @@ require_once '../header.php';
 
                                     <!-- Activity Tab -->
                                     <div x-show="tab === 'activity'" class="animate-fade-in-up">
-                                         <ul class="steps steps-vertical w-full">
+                                         <div x-show="loadingActivity" class="flex justify-center py-8">
+                                            <span class="loading loading-spinner text-primary"></span>
+                                         </div>
+                                         <ul class="steps steps-vertical w-full" x-show="!loadingActivity">
                                             <template x-for="log in activities" :key="log.id">
                                                 <li class="step step-neutral">
                                                     <div class="text-left py-2">
@@ -646,6 +679,9 @@ require_once '../header.php';
                         activities: [],
                         newMessage: '',
                         uploading: false,
+                        loadingFiles: false,
+                        loadingChat: false,
+                        loadingActivity: false,
                         chatInterval: null,
 
                         toggleExpand(targetTab = null) {
@@ -670,15 +706,19 @@ require_once '../header.php';
                         },
 
                         async loadFiles() {
+                            this.loadingFiles = true;
                             try {
                                 const fd = new FormData();
                                 fd.append('action', 'get_files');
                                 fd.append('task_id', taskId);
+                                fd.append('csrf_token', '<?php echo $_SESSION['csrf_token'] ?? ''; ?>');
                                 const res = await fetch('../tasks/task_actions.php', { method:'POST', body:fd });
                                 const data = await res.json();
                                 if(data.success) this.files = data.files;
                             } catch (error) {
                                 console.error('Error loading files:', error);
+                            } finally {
+                                this.loadingFiles = false;
                             }
                         },
 
@@ -691,6 +731,7 @@ require_once '../header.php';
                                 const fd = new FormData();
                                 fd.append('task_id', taskId);
                                 fd.append('file', file);
+                                fd.append('csrf_token', '<?php echo $_SESSION['csrf_token'] ?? ''; ?>');
                                 
                                 const res = await fetch('../tasks/upload_file.php', { method:'POST', body:fd });
                                 
@@ -724,8 +765,9 @@ require_once '../header.php';
                             try {
                                 const fd = new FormData();
                                 fd.append('action', 'delete_file');
-                                fd.append('task_id', taskId); // Pass task_id for logging/auth context if needed
+                                fd.append('task_id', taskId); 
                                 fd.append('file_id', fileId);
+                                fd.append('csrf_token', '<?php echo $_SESSION['csrf_token'] ?? ''; ?>');
                                 
                                 const res = await fetch('../tasks/task_actions.php', { method:'POST', body:fd });
                                 const data = await res.json();
@@ -742,10 +784,12 @@ require_once '../header.php';
                         },
 
                         async loadChat() {
+                            this.loadingChat = true;
                             try {
                                 const fd = new FormData();
                                 fd.append('action', 'get_chat');
                                 fd.append('task_id', taskId);
+                                fd.append('csrf_token', '<?php echo $_SESSION['csrf_token'] ?? ''; ?>');
                                 const res = await fetch('../tasks/task_actions.php', { method:'POST', body:fd });
                                 const data = await res.json();
                                 if(data.success) {
@@ -755,6 +799,7 @@ require_once '../header.php';
                                     });
                                 }
                             } catch(e) { console.warn(e); }
+                            finally { this.loadingChat = false; }
                         },
 
                         async sendMessage() {
@@ -764,6 +809,7 @@ require_once '../header.php';
                                 fd.append('action', 'send_chat');
                                 fd.append('task_id', taskId);
                                 fd.append('message', this.newMessage);
+                                fd.append('csrf_token', '<?php echo $_SESSION['csrf_token'] ?? ''; ?>');
                                 this.newMessage = '';
                                 await fetch('../tasks/task_actions.php', { method:'POST', body:fd });
                                 this.loadChat();
@@ -771,14 +817,17 @@ require_once '../header.php';
                         },
 
                         async loadActivity() {
+                            this.loadingActivity = true;
                             try {
                                 const fd = new FormData();
                                 fd.append('action', 'get_activity');
                                 fd.append('task_id', taskId);
+                                fd.append('csrf_token', '<?php echo $_SESSION['csrf_token'] ?? ''; ?>');
                                 const res = await fetch('../tasks/task_actions.php', { method:'POST', body:fd });
                                 const data = await res.json();
                                 if(data.success) this.activities = data.prop_logs;
                             } catch(e) { console.warn(e); }
+                            finally { this.loadingActivity = false; }
                         }
                     }));
                 });
@@ -1024,26 +1073,11 @@ require_once '../header.php';
                     <h3 class="font-bold text-lg">Files & Assets</h3>
                 </div>
 
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <?php if (empty($project_files)): ?>
-                        <div class="col-span-full text-center py-10 border-2 border-dashed border-base-300 rounded-xl">
-                            <p class="text-base-content/50">No files uploaded yet.</p>
-                        </div>
-                    <?php else: ?>
-                        <?php foreach ($project_files as $file): ?>
-                        <a href="<?php echo $file['filepath']; ?>" target="_blank" class="card bg-base-200 p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-base-300 transition group relative">
-                            <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button class="btn btn-xs btn-circle btn-ghost">✕</button>
-                            </div>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-primary mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                            <span class="text-xs font-bold truncate w-full px-2"><?php echo htmlspecialchars($file['filename']); ?></span>
-                            <span class="text-[10px] text-base-content/50 mt-1"><?php echo date('M d', strtotime($file['uploaded_at'])); ?></span>
-                        </a>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" id="project-files-grid">
+                    <?php include 'files_partial.php'; ?>
                 </div>
                 
-                <form method="POST" enctype="multipart/form-data" class="card bg-base-100 border border-base-300">
+                <form hx-post="<?php echo $_SERVER['REQUEST_URI']; ?>" hx-target="#project-files-grid" hx-encoding="multipart/form-data" hx-on::after-request="this.reset()" class="card bg-base-100 border border-base-300">
                     <?php csrf_field(); ?>
                     <div class="card-body p-4">
                         <div class="form-control w-full">
@@ -1328,6 +1362,7 @@ require_once '../header.php';
                                 const formData = new FormData();
                                 formData.append('project_id', projectId);
                                 formData.append('message', msg);
+                                formData.append('csrf_token', '<?php echo $_SESSION['csrf_token'] ?? ''; ?>');
                                 if (file) {
                                     formData.append('attachment', file);
                                 }

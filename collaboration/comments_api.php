@@ -15,6 +15,7 @@ $user_id = $_SESSION['user_id'];
 $user_name = get_user_name();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'post_comment') {
+    verify_csrf_token();
     $content = escape($_POST['content']);
     $project_id = isset($_POST['project_id']) ? (int)$_POST['project_id'] : 'NULL';
     $task_id = isset($_POST['task_id']) ? (int)$_POST['task_id'] : 'NULL';

@@ -97,9 +97,10 @@ if ($current_page != 'login.php' && $current_page != 'logout.php') {
             left: 0;
             width: 0%;
             height: 3px;
-            background: #3b82f6;
+            background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
             z-index: 10000;
-            transition: width 0.3s ease-in-out;
+            transition: width 0.3s ease, opacity 0.5s ease;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.7), 0 0 5px rgba(168, 85, 247, 0.5);
         }
         .htmx-request .htmx-progress {
             width: 100%;
