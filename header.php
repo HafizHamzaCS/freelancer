@@ -84,34 +84,59 @@ if ($current_page != 'login.php' && $current_page != 'logout.php') {
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <style>
-        /* Global HTMX Progress Bar */
-        .htmx-indicator {
-            display: none;
-        }
-        .htmx-request .htmx-indicator {
-            display: block;
-        }
-        .htmx-progress {
+        /* Global SaaS-Style Top Loader */
+        .htmx-indicator { display: none; }
+        .htmx-request .htmx-indicator { display: block; }
+        
+        #global-loader {
             position: fixed;
             top: 0;
             left: 0;
             width: 0%;
-            height: 3px;
-            background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
-            z-index: 10000;
-            transition: width 0.3s ease, opacity 0.5s ease;
-            box-shadow: 0 0 10px rgba(99, 102, 241, 0.7), 0 0 5px rgba(168, 85, 247, 0.5);
+            height: 4px;
+            background: #2563eb; /* Primary Blue */
+            z-index: 99999;
+            transition: width 0.4s ease, opacity 0.4s ease;
+            pointer-events: none;
         }
-        .htmx-request .htmx-progress {
+        #global-loader.loading {
+            width: 70%;
+            animation: saas-loading 2s infinite ease-in-out;
+        }
+        #global-loader.finished {
             width: 100%;
-            animation: progress 2s infinite ease-in-out;
+            opacity: 0;
         }
-        @keyframes progress {
-            0% { width: 0%; left: 0; }
-            50% { width: 70%; left: 15%; }
-            100% { width: 0%; left: 100%; }
+        @keyframes saas-loading {
+            0% { width: 10%; }
+            50% { width: 85%; }
+            100% { width: 95%; }
         }
     </style>
+    <script>
+        window.showLoader = () => {
+            const loader = document.getElementById('global-loader');
+            if (loader) {
+                loader.classList.remove('finished');
+                loader.classList.add('loading');
+                loader.style.opacity = '1';
+                loader.style.width = '0%';
+            }
+        };
+        window.hideLoader = () => {
+            const loader = document.getElementById('global-loader');
+            if (loader) {
+                loader.classList.remove('loading');
+                loader.classList.add('finished');
+                setTimeout(() => {
+                    loader.style.width = '0%';
+                }, 500);
+            }
+        };
+        // Auto-hook HTMX
+        document.addEventListener('htmx:configRequest', () => window.showLoader());
+        document.addEventListener('htmx:afterRequest', () => window.hideLoader());
+    </script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -132,12 +157,15 @@ if ($current_page != 'login.php' && $current_page != 'logout.php') {
                 document.documentElement.setAttribute('data-theme', theme);
                 
                 // Persist to Session
+                window.showLoader();
                 fetch('<?php echo APP_URL; ?>/set_theme.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({ theme: theme })
+                }).finally(() => {
+                    window.hideLoader();
                 });
             });
 
@@ -258,7 +286,7 @@ if ($current_page != 'login.php' && $current_page != 'logout.php') {
     <script src="<?php echo APP_URL; ?>/assets/bulk-actions.js"></script>
 </head>
 <body class="bg-base-200 min-h-screen font-sans">
-    <div class="htmx-progress htmx-indicator" id="global-progress"></div>
+    <div id="global-loader"></div>
 
 <?php if (is_logged_in()): ?>
 <div class="drawer lg:drawer-open">

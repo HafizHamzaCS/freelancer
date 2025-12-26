@@ -202,16 +202,18 @@ function aiBossChat() {
             const userCommand = this.input;
             this.input = '';
             this.loading = true;
+            window.showLoader();
             this.scroll();
 
             fetch('<?php echo APP_URL; ?>/ai/chat_api.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: json_encode({ command: userCommand })
+                body: JSON.stringify({ command: userCommand })
             })
             .then(res => res.json())
             .then(data => {
                 this.loading = false;
+                window.hideLoader();
                 if (data.success) {
                     const aiReply = data.response.reply;
                     this.messages.push({ id: Date.now(), role: 'ai', content: aiReply });
@@ -226,6 +228,7 @@ function aiBossChat() {
             })
             .catch(err => {
                 this.loading = false;
+                window.hideLoader();
                 this.messages.push({ id: Date.now(), role: 'ai', content: 'Technical error connecting to AI.' });
                 this.scroll();
             });
@@ -237,6 +240,7 @@ function aiBossChat() {
             const data = this.suggestedAction.data;
 
             this.loading = true;
+            window.showLoader();
             fetch('<?php echo APP_URL; ?>/ai/execute_action.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -245,6 +249,7 @@ function aiBossChat() {
             .then(res => res.json())
             .then(resData => {
                 this.loading = false;
+                window.hideLoader();
                 if (resData.success) {
                     this.messages.push({ id: Date.now(), role: 'ai', content: '✅ ' + resData.message });
                     this.suggestedAction = null;
@@ -255,6 +260,7 @@ function aiBossChat() {
             })
             .catch(err => {
                 this.loading = false;
+                window.hideLoader();
                 this.messages.push({ id: Date.now(), role: 'ai', content: 'Technical error executing action.' });
                 this.scroll();
             });

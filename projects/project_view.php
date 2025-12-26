@@ -718,6 +718,7 @@ require_once '../header.php';
 
                         async loadFiles() {
                             this.loadingFiles = true;
+                            window.showLoader();
                             try {
                                 const fd = new FormData();
                                 fd.append('action', 'get_files');
@@ -730,6 +731,7 @@ require_once '../header.php';
                                 console.error('Error loading files:', error);
                             } finally {
                                 this.loadingFiles = false;
+                                window.hideLoader();
                             }
                         },
 
@@ -737,6 +739,7 @@ require_once '../header.php';
                             const file = e.target.files[0];
                             if(!file) return;
                             this.uploading = true;
+                            window.showLoader();
                             
                             try {
                                 const fd = new FormData();
@@ -767,12 +770,14 @@ require_once '../header.php';
                                 this.uploading = false;
                                 console.error('Upload Error:', error);
                                 alert(`Error uploading file: ${error.message}`);
+                            } finally {
+                                window.hideLoader();
                             }
                         },
 
                         async deleteFile(fileId) {
                             if(!confirm('Are you sure you want to delete this file? This cannot be undone.')) return;
-                            
+                            window.showLoader();
                             try {
                                 const fd = new FormData();
                                 fd.append('action', 'delete_file');
@@ -791,11 +796,14 @@ require_once '../header.php';
                             } catch (error) {
                                 console.error('Delete Error:', error);
                                 alert('Error deleting file');
+                            } finally {
+                                window.hideLoader();
                             }
                         },
 
                         async loadChat() {
                             this.loadingChat = true;
+                            window.showLoader();
                             try {
                                 const fd = new FormData();
                                 fd.append('action', 'get_chat');
@@ -810,11 +818,15 @@ require_once '../header.php';
                                     });
                                 }
                             } catch(e) { console.warn(e); }
-                            finally { this.loadingChat = false; }
+                            finally { 
+                                this.loadingChat = false; 
+                                window.hideLoader();
+                            }
                         },
 
                         async sendMessage() {
                             if(!this.newMessage.trim()) return;
+                            window.showLoader();
                             try {
                                 const fd = new FormData();
                                 fd.append('action', 'send_chat');
@@ -824,11 +836,16 @@ require_once '../header.php';
                                 this.newMessage = '';
                                 await fetch('../tasks/task_actions.php', { method:'POST', body:fd });
                                 this.loadChat();
-                            } catch(e) { alert('Failed to send message'); }
+                            } catch(e) { 
+                                alert('Failed to send message'); 
+                            } finally {
+                                window.hideLoader();
+                            }
                         },
 
                         async loadActivity() {
                             this.loadingActivity = true;
+                            window.showLoader();
                             try {
                                 const fd = new FormData();
                                 fd.append('action', 'get_activity');
@@ -838,7 +855,10 @@ require_once '../header.php';
                                 const data = await res.json();
                                 if(data.success) this.activities = data.prop_logs;
                             } catch(e) { console.warn(e); }
-                            finally { this.loadingActivity = false; }
+                            finally { 
+                                this.loadingActivity = false; 
+                                window.hideLoader();
+                            }
                         }
                     }));
                 });
@@ -1770,6 +1790,7 @@ function aiSuggestions(projectId) {
         fetchSuggestions() {
             this.loading = true;
             this.suggestions = [];
+            window.showLoader();
             
             fetch('<?php echo APP_URL; ?>/ai/chat_api.php', {
                 method: 'POST',
@@ -1781,6 +1802,7 @@ function aiSuggestions(projectId) {
             .then(res => res.json())
             .then(data => {
                 this.loading = false;
+                window.hideLoader();
                 if (data.success && data.response.data) {
                     this.suggestions = data.response.data.map(t => ({...t, selected: true}));
                 } else if (data.success && Array.isArray(data.response)) {
@@ -1789,25 +1811,34 @@ function aiSuggestions(projectId) {
                     console.error('AI Suggestion raw:', data);
                     alert('AI could not parse requirements. Try adding more detail to project description.');
                 }
+            })
+            .catch(err => {
+                this.loading = false;
+                window.hideLoader();
+                console.error(err);
             });
         },
 
         async applySuggestions() {
             this.applying = true;
+            window.showLoader();
             const selected = this.suggestions.filter(s => s.selected);
             
-            for (const task of selected) {
-                await fetch('<?php echo APP_URL; ?>/ai/execute_action.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        action: 'create_task', 
-                        data: { project_id: projectId, title: task.title, description: task.description, priority: task.priority } 
-                    })
-                });
-            }
+            try {
+                for (const task of selected) {
+                    await fetch('<?php echo APP_URL; ?>/ai/execute_action.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            action: 'create_task', 
+                            data: { project_id: projectId, title: task.title, description: task.description, priority: task.priority } 
+                        })
+                    });
+                }
+            } catch(e) { console.error(e); }
             
             this.applying = false;
+            window.hideLoader();
             this.show = false;
             window.location.reload();
         }
