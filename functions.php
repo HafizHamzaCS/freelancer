@@ -12,10 +12,6 @@ function redirect($url) {
     exit;
 }
 
-function e($value) {
-    return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
-}
-
 function is_logged_in() {
     return isset($_SESSION['user_id']);
 }
