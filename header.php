@@ -364,24 +364,24 @@ if ($current_page != 'login.php' && $current_page != 'logout.php') {
                     </div>
                     <ul tabindex="0" class="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52">
                         <li><a href="<?php echo APP_URL; ?>/projects/project_list.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'projects/') !== false ? 'active' : ''; ?>">Projects</a></li>
-                <li><a href="<?php echo APP_URL; ?>/tasks/index.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'tasks/') !== false ? 'active' : ''; ?>">Tasks</a></li>
-                <li><a href="<?php echo APP_URL; ?>/clients/client_list.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'clients/') !== false ? 'active' : ''; ?>">Clients</a></li>
-                <li><a href="<?php echo APP_URL; ?>/reports/index.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'reports/') !== false ? 'active' : ''; ?>">Reports</a></li>
+                        <li><a href="<?php echo APP_URL; ?>/tasks/index.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'tasks/') !== false ? 'active' : ''; ?>">Tasks</a></li>
+                        <li><a href="<?php echo APP_URL; ?>/clients/client_list.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'clients/') !== false ? 'active' : ''; ?>">Clients</a></li>
+                        <li><a href="<?php echo APP_URL; ?>/reports/index.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'reports/') !== false ? 'active' : ''; ?>">Reports</a></li>
                         <li><a href="<?php echo APP_URL; ?>/settings.php">Settings</a></li>
                         <li><a href="<?php echo APP_URL; ?>/workflows/index.php">Workflows</a></li>
                         <li><a href="<?php echo APP_URL; ?>/logout.php" hx-boost="false">Logout</a></li>
                     </ul>
                 </div>
             </div>
-                </div>
-
-            <!-- Breadcrumbs -->
-            <div class="text-sm breadcrumbs mt-2">
-                <ul>
-                    <?php foreach ($crumbs as $crumb): ?>
-                        <li><a href="<?php echo htmlspecialchars($crumb['url']); ?>"><?php echo htmlspecialchars($crumb['name']); ?></a></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
         </div>
+
+        <!-- Breadcrumbs -->
+        <div class="text-sm breadcrumbs mt-2">
+            <ul>
+                <?php foreach ($crumbs as $crumb): ?>
+                    <li><a href="<?php echo htmlspecialchars($crumb['url']); ?>"><?php echo htmlspecialchars($crumb['name']); ?></a></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    </div>
 <?php endif; ?>

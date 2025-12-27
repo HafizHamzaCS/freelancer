@@ -147,8 +147,8 @@ function send_email($to, $subject, $body, $client_id = 0) {
 }
 
 class AI_Service {
-    private static $context_path = __DIR__ . '/ai/ai_context.toon';
-    private static $memory_path = __DIR__ . '/ai/ai_memory.toon';
+    public static $context_path = __DIR__ . '/ai/ai_context.toon';
+    public static $memory_path = __DIR__ . '/ai/ai_memory.toon';
 
     public static function call($prompt, $action_type = 'General', $force_premium = false) {
         $enabled = get_setting('ai_enabled', '0');
