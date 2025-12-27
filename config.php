@@ -3,6 +3,18 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// Custom Error Logger
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    $msg = "[" . date('Y-m-d H:i:s') . "] Error [$errno]: $errstr in $errfile on line $errline\n";
+    file_put_contents(__DIR__ . '/custom_error.log', $msg, FILE_APPEND);
+    return false; // Let standard handler continue
+});
+set_exception_handler(function($e) {
+    $msg = "[" . date('Y-m-d H:i:s') . "] Exception: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine() . "\n";
+    file_put_contents(__DIR__ . '/custom_error.log', $msg, FILE_APPEND);
+    die($msg);
+});
+
 // Database Credentials
 define('DB_HOST', 'localhost');
 define('DB_USER', 'u399471847_freelance');
