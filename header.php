@@ -4,9 +4,9 @@ require_once __DIR__ . '/functions.php';
 
 // Check auth on all pages except login
 $current_page = basename($_SERVER['PHP_SELF']);
-if ($current_page != 'login.php' && $current_page != 'logout.php') {
-    check_auth();
-}
+// if ($current_page != 'login.php' && $current_page != 'logout.php') {
+//     check_auth();
+// }
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="<?php echo $_SESSION['theme'] ?? 'light'; ?>" hx-boost="true" hx-target="#main-content" hx-select="#main-content">
