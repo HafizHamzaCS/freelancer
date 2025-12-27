@@ -3,92 +3,48 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// --- STEP 1: Session Configuration BEFORE Starting ---
-// This MUST be done before session_start()
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_only_cookies', 1);
-ini_set('session.use_strict_mode', 1);
-
-if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
-    ini_set('session.cookie_secure', 1);
-}
-
-ini_set('session.cookie_samesite', 'Lax');
-
-// Start Session ONLY if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// --- STEP 2: Error Handlers ---
+// Custom Error Logger
 set_error_handler(function($errno, $errstr, $errfile, $errline) {
-    $log_file = __DIR__ . '/error.log';
-    $error_msg = date('[Y-m-d H:i:s]') . " Error [$errno]: $errstr in $errfile on line $errline\n";
-    error_log($error_msg, 3, $log_file);
+    error_log("Error [$errno]: $errstr in $errfile on line $errline");
     return false; 
 });
-
 set_exception_handler(function($e) {
-    $log_file = __DIR__ . '/error.log';
-    $error_msg = date('[Y-m-d H:i:s]') . " Exception: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine() . "\n";
-    error_log($error_msg, 3, $log_file);
-    
-    // Show user-friendly error
-    if (defined('WP_DEBUG') || isset($_GET['debug'])) {
-        die("<div style='background:#fee;border:2px solid #c33;padding:20px;margin:20px;border-radius:8px;'>
-            <h2 style='color:#c33;margin:0 0 10px 0;'>Fatal Error</h2>
-            <p><strong>Message:</strong> " . htmlspecialchars($e->getMessage()) . "</p>
-            <p><strong>File:</strong> " . htmlspecialchars($e->getFile()) . "</p>
-            <p><strong>Line:</strong> " . $e->getLine() . "</p>
-            <p><strong>Check:</strong> {$log_file} for details</p>
-            </div>");
-    } else {
-        die("<h1>A fatal error occurred.</h1><p>Please contact the administrator.</p>");
-    }
+    error_log("Exception: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+    die("<h1>A fatal error occurred.</h1><p>Please check the server logs.</p>");
 });
 
-// --- STEP 3: Database Credentials ---
+// Database Credentials
 define('DB_HOST', 'localhost');
 define('DB_USER', 'u399471847_freelance');
 define('DB_PASS', 'hZ??^F0&C');
 define('DB_NAME', 'u399471847_freelance_empi');
 
-// --- STEP 4: App Settings ---
+// App Settings
 define('APP_URL', 'https://freelancer.cyprusautobazaar.com');
 define('APP_NAME', 'Freelance Empire');
 
-// --- STEP 5: Database Connection ---
+// Connect to Database
+// Connect to Database
 try {
     $conn = mysqli_connect(DB_HOST, DB_USER, DB_PASS);
-    
-    if (!$conn) {
-        throw new Exception("Connection failed: " . mysqli_connect_error());
-    }
-    
-    // Set charset
-    mysqli_set_charset($conn, 'utf8mb4');
-    
-    // Create database if not exists
-    $db_check = mysqli_query($conn, "CREATE DATABASE IF NOT EXISTS " . DB_NAME);
-    if (!$db_check) {
-        throw new Exception("Error creating database: " . mysqli_error($conn));
-    }
-    
-    // Select database
-    if (!mysqli_select_db($conn, DB_NAME)) {
-        throw new Exception("Error selecting database: " . mysqli_error($conn));
-    }
-    
 } catch (Exception $e) {
-    error_log("Database Error: " . $e->getMessage());
-    die("<div style='background:#fee;border:2px solid #c33;padding:20px;margin:20px;border-radius:8px;'>
-        <h2 style='color:#c33;'>Database Connection Error</h2>
-        <p>" . htmlspecialchars($e->getMessage()) . "</p>
-        <p>Please check your config.php settings.</p>
-        </div>");
+    die("<h1>Database Connection Error</h1><p>" . $e->getMessage() . "</p><p>Please check your config.php settings.</p>");
 }
 
-// --- STEP 6: Create Tables ---
+if (!$conn) {
+    die("Connection failed: " . mysqli_connect_error());
+}
+
+// Create DB if not exists
+$db_check = mysqli_query($conn, "CREATE DATABASE IF NOT EXISTS " . DB_NAME);
+if (!$db_check) {
+    die("Error creating database: " . mysqli_error($conn));
+}
+
+// Select Database
+mysqli_select_db($conn, DB_NAME);
+
+// Create Tables (Auto-setup)
 $tables = [
     "users" => "CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -109,7 +65,6 @@ $tables = [
         phone VARCHAR(50),
         status VARCHAR(20) DEFAULT 'Active',
         notes TEXT,
-        last_contacted DATE NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )",
     "projects" => "CREATE TABLE IF NOT EXISTS projects (
@@ -122,7 +77,6 @@ $tables = [
         start_date DATE,
         deadline DATE,
         budget DECIMAL(10,2),
-        team_id INT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )",
     "promotions" => "CREATE TABLE IF NOT EXISTS promotions (
@@ -145,7 +99,6 @@ $tables = [
         parent_id INT DEFAULT NULL,
         dependencies TEXT,
         created_by INT,
-        deleted_at TIMESTAMP NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )",
     "task_comments" => "CREATE TABLE IF NOT EXISTS task_comments (
@@ -220,10 +173,8 @@ $tables = [
         id INT AUTO_INCREMENT PRIMARY KEY,
         project_id INT,
         user_id INT,
-        sender_type VARCHAR(20) DEFAULT 'admin',
+        sender_type VARCHAR(20) DEFAULT 'admin', -- 'admin' or 'client'
         message TEXT,
-        attachment_path VARCHAR(255) NULL,
-        attachment_type VARCHAR(50) NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )",
     "teams" => "CREATE TABLE IF NOT EXISTS teams (
@@ -273,64 +224,155 @@ $tables = [
     )"
 ];
 
-// Create tables with error handling
 foreach ($tables as $name => $sql) {
     if (!mysqli_query($conn, $sql)) {
-        error_log("Error creating table $name: " . mysqli_error($conn));
+        die("Error creating table $name: " . mysqli_error($conn));
     }
 }
 
-// --- STEP 7: Column Migrations (Safe) ---
-function add_column_if_not_exists($table, $column, $definition) {
-    global $conn;
-    
-    $check = mysqli_query($conn, "SHOW COLUMNS FROM `{$table}` LIKE '{$column}'");
-    if (mysqli_num_rows($check) == 0) {
-        $sql = "ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}";
-        if (!mysqli_query($conn, $sql)) {
-            error_log("Error adding column {$column} to {$table}: " . mysqli_error($conn));
-        }
-    }
+// Add new columns to clients table if they don't exist
+$client_cols = mysqli_query($conn, "SHOW COLUMNS FROM clients");
+$cols = [];
+while ($row = mysqli_fetch_assoc($client_cols)) {
+    $cols[] = $row['Field'];
 }
 
-// Add missing columns safely
-add_column_if_not_exists('clients', 'last_contacted', 'DATE NULL');
-add_column_if_not_exists('clients', 'slug', 'VARCHAR(255)');
-add_column_if_not_exists('clients', 'password', 'VARCHAR(255)');
-add_column_if_not_exists('clients', 'login_token', 'VARCHAR(64)');
+if (!in_array('last_contacted', $cols)) {
+    mysqli_query($conn, "ALTER TABLE clients ADD COLUMN last_contacted DATE NULL");
+}
+if (!in_array('slug', $cols)) {
+    mysqli_query($conn, "ALTER TABLE clients ADD COLUMN slug VARCHAR(255)");
+}
 
-add_column_if_not_exists('projects', 'slug', 'VARCHAR(255)');
-add_column_if_not_exists('projects', 'source', "VARCHAR(50) DEFAULT 'Direct'");
-add_column_if_not_exists('projects', 'team_id', 'INT DEFAULT NULL');
+// Add new columns to projects table if they don't exist
+$project_cols = mysqli_query($conn, "SHOW COLUMNS FROM projects");
+$p_cols = [];
+while ($row = mysqli_fetch_assoc($project_cols)) {
+    $p_cols[] = $row['Field'];
+}
 
-add_column_if_not_exists('users', 'role', "VARCHAR(20) DEFAULT 'admin'");
-add_column_if_not_exists('users', 'login_token', 'VARCHAR(64)');
+if (!in_array('slug', $p_cols)) {
+    mysqli_query($conn, "ALTER TABLE projects ADD COLUMN slug VARCHAR(255)");
+}
 
-add_column_if_not_exists('messages', 'attachment_path', 'VARCHAR(255) NULL');
-add_column_if_not_exists('messages', 'attachment_type', 'VARCHAR(50) NULL');
-
-add_column_if_not_exists('tasks', 'priority', "ENUM('Low', 'Medium', 'High') DEFAULT 'Medium'");
-add_column_if_not_exists('tasks', 'assigned_to', 'INT');
-add_column_if_not_exists('tasks', 'description', 'TEXT');
-add_column_if_not_exists('tasks', 'parent_id', 'INT DEFAULT NULL');
-add_column_if_not_exists('tasks', 'dependencies', 'TEXT');
-add_column_if_not_exists('tasks', 'created_by', 'INT');
-add_column_if_not_exists('tasks', 'deleted_at', 'TIMESTAMP NULL');
-
-add_column_if_not_exists('task_files', 'file_type', 'VARCHAR(50)');
-add_column_if_not_exists('task_files', 'user_id', 'INT');
-add_column_if_not_exists('task_files', 'original_name', 'VARCHAR(255)');
-
-// --- STEP 8: Create Default Admin User ---
+// Create Default User if not exists
 $user_check = mysqli_query($conn, "SELECT * FROM users LIMIT 1");
 if (mysqli_num_rows($user_check) == 0) {
     $password = password_hash("password", PASSWORD_DEFAULT);
-    $insert_user = "INSERT INTO users (name, email, password, role) VALUES ('Admin', 'admin@example.com', ?, 'admin')";
-    $stmt = mysqli_prepare($conn, $insert_user);
-    mysqli_stmt_bind_param($stmt, 's', $password);
-    mysqli_stmt_execute($stmt);
-    mysqli_stmt_close($stmt);
+    mysqli_query($conn, "INSERT INTO users (name, email, password, role) VALUES ('Admin', 'admin@example.com', '$password', 'admin')");
 }
 
-// Configuration complete
+// Auth Migration: Add columns to users if missing
+$user_cols = mysqli_query($conn, "SHOW COLUMNS FROM users");
+$u_cols = [];
+while ($row = mysqli_fetch_assoc($user_cols)) {
+    $u_cols[] = $row['Field'];
+}
+if (!in_array('role', $u_cols)) {
+    mysqli_query($conn, "ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'admin'");
+}
+if (!in_array('login_token', $u_cols)) {
+    mysqli_query($conn, "ALTER TABLE users ADD COLUMN login_token VARCHAR(64)");
+}
+
+// Auth Migration: Add columns to clients if missing
+if (!in_array('password', $cols)) { // $cols is clients columns from above
+    mysqli_query($conn, "ALTER TABLE clients ADD COLUMN password VARCHAR(255)");
+}
+if (!in_array('login_token', $cols)) {
+    mysqli_query($conn, "ALTER TABLE clients ADD COLUMN login_token VARCHAR(64)");
+}
+
+// Project Migration: Add source column if missing
+$proj_cols = mysqli_query($conn, "SHOW COLUMNS FROM projects");
+$p_cols = [];
+while ($row = mysqli_fetch_assoc($proj_cols)) {
+    $p_cols[] = $row['Field'];
+}
+if (!in_array('source', $p_cols)) {
+    mysqli_query($conn, "ALTER TABLE projects ADD COLUMN source VARCHAR(50) DEFAULT 'Direct'");
+}
+if (!in_array('team_id', $p_cols)) {
+    mysqli_query($conn, "ALTER TABLE projects ADD COLUMN team_id INT DEFAULT NULL");
+}
+
+// Chat Migration: Add attachment columns to messages if missing
+$msg_cols = mysqli_query($conn, "SHOW COLUMNS FROM messages");
+$m_cols = [];
+while ($row = mysqli_fetch_assoc($msg_cols)) {
+    $m_cols[] = $row['Field'];
+}
+if (!in_array('attachment_path', $m_cols)) {
+    mysqli_query($conn, "ALTER TABLE messages ADD COLUMN attachment_path VARCHAR(255) NULL");
+}
+if (!in_array('attachment_type', $m_cols)) {
+    mysqli_query($conn, "ALTER TABLE messages ADD COLUMN attachment_type VARCHAR(50) NULL");
+}
+
+// Task Migration: Add new columns if missing
+$task_cols = mysqli_query($conn, "SHOW COLUMNS FROM tasks");
+$t_cols = [];
+while ($row = mysqli_fetch_assoc($task_cols)) {
+    $t_cols[] = $row['Field'];
+}
+
+if (!in_array('priority', $t_cols)) {
+    mysqli_query($conn, "ALTER TABLE tasks ADD COLUMN priority ENUM('Low', 'Medium', 'High') DEFAULT 'Medium'");
+}
+if (!in_array('assigned_to', $t_cols)) {
+    mysqli_query($conn, "ALTER TABLE tasks ADD COLUMN assigned_to INT");
+}
+if (!in_array('description', $t_cols)) {
+    mysqli_query($conn, "ALTER TABLE tasks ADD COLUMN description TEXT");
+}
+if (!in_array('parent_id', $t_cols)) {
+    mysqli_query($conn, "ALTER TABLE tasks ADD COLUMN parent_id INT DEFAULT NULL");
+}
+if (!in_array('dependencies', $t_cols)) {
+    mysqli_query($conn, "ALTER TABLE tasks ADD COLUMN dependencies TEXT");
+}
+if (!in_array('created_by', $t_cols)) {
+    mysqli_query($conn, "ALTER TABLE tasks ADD COLUMN created_by INT");
+}
+
+// Task Files Migration: Add missing columns
+$tf_cols = mysqli_query($conn, "SHOW COLUMNS FROM task_files");
+if ($tf_cols) {
+    $tf_columns = [];
+    while ($row = mysqli_fetch_assoc($tf_cols)) {
+        $tf_columns[] = $row['Field'];
+    }
+    
+    if (!in_array('file_type', $tf_columns)) {
+        mysqli_query($conn, "ALTER TABLE task_files ADD COLUMN file_type VARCHAR(50)");
+    }
+    
+    if (!in_array('user_id', $tf_columns)) {
+        mysqli_query($conn, "ALTER TABLE task_files ADD COLUMN user_id INT");
+    }
+
+    if (!in_array('original_name', $tf_columns)) {
+        mysqli_query($conn, "ALTER TABLE task_files ADD COLUMN original_name VARCHAR(255)");
+    }
+}
+
+// --- Security & Session Hardening ---
+// Error display is currently enabled for debugging
+
+// Harden Session Cookies
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.use_strict_mode', 1);
+
+    if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+        ini_set('session.cookie_secure', 1);
+    }
+
+    // Set Samesite attribute
+    ini_set('session.cookie_samesite', 'Lax');
+
+    // Start Session
+    session_start();
+}
 ?>
