@@ -1,5 +1,7 @@
 <?php
 // config.php - Database & Settings
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 // Database Credentials
 define('DB_HOST', 'localhost');
@@ -345,10 +347,7 @@ if ($tf_cols) {
 }
 
 // --- Security & Session Hardening ---
-// Disable error display to prevent information leakage
-ini_set('display_errors', 0);
-ini_set('display_startup_errors', 0);
-error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
+// Error display is currently enabled for debugging
 
 // Harden Session Cookies
 ini_set('session.cookie_httponly', 1);
